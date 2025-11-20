@@ -1,0 +1,24 @@
+risk-portfolio-system/
+├── .gitignore
+├── README.md
+├── requirements.txt
+├── config/
+│   ├── data_sources.yaml
+│   ├── portfolio.yaml
+│   ├── schedule.yaml
+│   └── signals.yaml
+├── scripts/
+│   ├── evaluate_risk.py
+│   ├── fetch_market_data.py
+│   ├── portfolio_logic.py
+│   └── signals_engine.py
+├── data/
+│   ├── raw/
+│   ├── history/
+│   └── cache/
+├── reports/
+│   ├── daily/
+│   └── dashboards/
+├── logs/
+└── tools/
+    └── run_daily.sh

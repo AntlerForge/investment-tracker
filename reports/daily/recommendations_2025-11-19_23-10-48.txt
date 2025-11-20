@@ -1,0 +1,107 @@
+================================================================================
+PORTFOLIO RECOMMENDATIONS - DISCUSSION FORMAT
+================================================================================
+Generated: 2025-11-19 23:10:56
+Current Portfolio Value: £430.35
+
+────────────────────────────────────────────────────────────────────────────────
+SELL RECOMMENDATIONS
+────────────────────────────────────────────────────────────────────────────────
+
+1. SMCI (SMCI)
+   Action: SELL
+   Current Value: £55.77
+   P&L: -37.32%
+   Reason: (stop loss: -37.3%)
+
+2. MARA (MARA)
+   Action: SELL
+   Current Value: £14.42
+   P&L: -41.52%
+   Reason: (stop loss: -41.5%)
+
+3. CLSK (CLSK)
+   Action: SELL
+   Current Value: £6.23
+   P&L: -48.33%
+   Reason: (stop loss: -48.3%)
+
+Total Funds from Sales: £76.41
+
+────────────────────────────────────────────────────────────────────────────────
+BUY RECOMMENDATIONS
+────────────────────────────────────────────────────────────────────────────────
+Available Funds: £76.41
+
+1. NVDA - CONSIDER
+   Confidence Score: 5/100
+   Suggested Allocation: £8.49
+
+   Signals:
+   • Price data available - evaluate based on your own research
+
+2. AAPL - CONSIDER
+   Confidence Score: 5/100
+   Suggested Allocation: £8.49
+
+   Signals:
+   • Price data available - evaluate based on your own research
+
+3. AMZN - CONSIDER
+   Confidence Score: 5/100
+   Suggested Allocation: £8.49
+
+   Signals:
+   • Price data available - evaluate based on your own research
+
+4. MSFT - CONSIDER
+   Confidence Score: 5/100
+   Suggested Allocation: £8.49
+
+   Signals:
+   • Price data available - evaluate based on your own research
+
+5. GOOGL - CONSIDER
+   Confidence Score: 5/100
+   Suggested Allocation: £8.49
+
+   Signals:
+   • Price data available - evaluate based on your own research
+
+6. META - CONSIDER
+   Confidence Score: 5/100
+   Suggested Allocation: £8.49
+
+   Signals:
+   • Price data available - evaluate based on your own research
+
+7. AMD - CONSIDER
+   Confidence Score: 5/100
+   Suggested Allocation: £8.49
+
+   Signals:
+   • Price data available - evaluate based on your own research
+
+8. TSLA - CONSIDER
+   Confidence Score: 5/100
+   Suggested Allocation: £8.49
+
+   Signals:
+   • Price data available - evaluate based on your own research
+
+9. INTC - CONSIDER
+   Confidence Score: 5/100
+   Suggested Allocation: £8.49
+
+   Signals:
+   • Price data available - evaluate based on your own research
+
+================================================================================
+SUMMARY
+================================================================================
+Sell Actions: 3
+Buy Opportunities: 9
+Funds Available: £76.41
+
+Review these recommendations and discuss before executing trades.
+================================================================================

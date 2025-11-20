@@ -1,0 +1,14 @@
+requests
+pydantic>=2.0
+pyyaml
+pandas
+matplotlib
+rich
+python-dateutil
+python-dotenv
+typer
+yfinance
+flask
+
+beautifulsoup4
+lxml

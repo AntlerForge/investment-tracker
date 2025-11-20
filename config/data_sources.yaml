@@ -1,0 +1,39 @@
+# Data Source Configuration
+# Priority order: sources are tried in sequence until one succeeds
+
+market_data:
+  primary:
+    provider: "alphavantage"  # or "polygon", "yfinance"
+    api_key_env: "ALPHAVANTAGE_API_KEY"
+    rate_limit_per_minute: 5
+  fallback:
+    provider: "yfinance"
+    api_key_env: null
+
+fx_rates:
+  primary:
+    provider: "alphavantage"
+    api_key_env: "ALPHAVANTAGE_API_KEY"
+  fallback:
+    provider: "yfinance"
+
+macro_indicators:
+  vix:
+    provider: "yfinance"
+    symbol: "^VIX"
+  hyg:
+    provider: "yfinance"
+    symbol: "HYG"
+  qqq:
+    provider: "yfinance"
+    symbol: "QQQ"
+  us10y:
+    provider: "fred"
+    symbol: "DGS10"
+    api_key_env: "FRED_API_KEY"
+
+cache:
+  enabled: true
+  ttl_minutes: 15
+  directory: "data/cache"
+

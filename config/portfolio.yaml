@@ -1,0 +1,51 @@
+baseline_date: "2025-10-13"
+currency: "GBP"
+
+holdings:
+  AML:
+    symbol: "AML.L"
+    shares: 219.11553189
+    baseline_value_gbp: 135.70
+    type: "equity"
+    risk_bucket: "low-beta-uk"
+  NVDA:
+    symbol: "NVDA"
+    shares: 0.92807971
+    baseline_value_gbp: 131.73
+    type: "equity"
+    risk_bucket: "core-ai"
+  SMCI:
+    symbol: "SMCI"
+    shares: 2.15872132
+    baseline_value_gbp: 88.97
+    type: "equity"
+    risk_bucket: "high-beta-ai"
+  ARM:
+    symbol: "ARM"
+    shares: 0.44778043
+    baseline_value_gbp: 54.03
+    type: "equity"
+    risk_bucket: "core-ai"
+  MARA:
+    symbol: "MARA"
+    shares: 1.69567153
+    baseline_value_gbp: 24.65
+    type: "equity"
+    risk_bucket: "crypto-beta"
+  AVGO:
+    symbol: "AVGO"
+    shares: 0.15967921
+    baseline_value_gbp: 40.27
+    type: "equity"
+    risk_bucket: "core-ai"
+  CLSK:
+    symbol: "CLSK"
+    shares: 0.79610785
+    baseline_value_gbp: 12.06
+    type: "equity"
+    risk_bucket: "crypto-beta"
+
+rules:
+  take_profit_pct: 40.0
+  cut_loss_pct: -25.0
+

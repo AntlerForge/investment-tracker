@@ -1,0 +1,10 @@
+evaluation:
+  frequency: "daily"
+  time_uk: "19:30"
+  days: ["Mon", "Tue", "Wed", "Thu", "Fri"]
+
+outputs:
+  make_markdown: true
+  make_html: true
+  update_dashboard_symlink: true
+

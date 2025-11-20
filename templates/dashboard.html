@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risk Portfolio Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Status Bar -->
+        <div id="status-bar" class="status-bar">
+            <span id="status-text"></span>
+            <span id="status-spinner" class="spinner" style="display: none;">⏳</span>
+        </div>
+        
+        <header>
+            <h1>📊 Risk Portfolio Dashboard</h1>
+            <div class="header-actions">
+                <button id="btn-evaluate" class="btn btn-primary">Run Evaluation</button>
+                <button id="btn-refresh" class="btn btn-secondary">Refresh</button>
+            </div>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- Risk Summary Card -->
+            <div class="card risk-summary">
+                <h2>Risk Summary</h2>
+                {% if latest_report %}
+                <div class="risk-score">
+                    {% if latest_report.risk_score is not none %}
+                    <span class="score-value" id="risk-score">{{ latest_report.risk_score }}</span>
+                    <span class="score-label">Risk Score: {{ latest_report.risk_level or 'N/A' }}</span>
+                    {% else %}
+                    <span class="score-value" id="risk-score">--</span>
+                    <span class="score-label">Report Date: {{ latest_report.date }}</span>
+                    {% endif %}
+                </div>
+                <div class="risk-actions">
+                    <a href="/reports/{{ latest_report.html_path }}" target="_blank" class="btn btn-small">View Full Report</a>
+                </div>
+                {% else %}
+                <p>No evaluation report available. Click "Run Evaluation" to generate one.</p>
+                {% endif %}
+            </div>
+
+            <!-- Portfolio Holdings -->
+            <div class="card portfolio-holdings">
+                <div class="card-header">
+                    <h2>Portfolio Holdings</h2>
+                    <button id="btn-add-holding" class="btn btn-small btn-primary">+ Add Holding</button>
+                </div>
+                <div class="table-container">
+                    <table id="holdings-table">
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Symbol</th>
+                                <th>Shares</th>
+                                <th>Baseline Value (£)</th>
+                                <th>Current Value (£)</th>
+                                <th>P&L (£)</th>
+                                <th>P&L (%)</th>
+                                <th>Action</th>
+                                <th>Risk Bucket</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="holdings-tbody">
+                            {% for ticker, holding in portfolio.holdings.items() %}
+                            {% set pos = portfolio_pnl.positions_by_ticker.get(ticker, {}) %}
+                            {% set current_value = pos.get("current_value_gbp") %}
+                            {% set change_gbp = pos.get("change_gbp", 0) %}
+                            {% set change_pct = pos.get("change_pct", 0) %}
+                            {% set action = pos.get("action", "HOLD") %}
+                            {% set action_reason = pos.get("action_reason", "") %}
+                            <tr data-ticker="{{ ticker }}">
+                                <td><strong>{{ ticker }}</strong></td>
+                                <td>{{ holding.symbol }}</td>
+                                <td class="editable" data-field="shares">{{ holding.shares }}</td>
+                                <td class="editable" data-field="baseline_value_gbp">£{{ "%.2f"|format(holding.baseline_value_gbp) }}</td>
+                                <td class="{% if current_value and change_gbp >= 0 %}positive{% elif current_value and change_gbp < 0 %}negative{% endif %}">
+                                    {% if current_value %}
+                                        £{{ "%.2f"|format(current_value) }}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </td>
+                                <td class="{% if change_gbp >= 0 %}positive{% else %}negative{% endif %}">
+                                    {% if current_value %}
+                                        {{ "+" if change_gbp >= 0 else "" }}£{{ "%.2f"|format(change_gbp) }}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </td>
+                                <td class="{% if change_pct >= 0 %}positive{% else %}negative{% endif %}">
+                                    {% if current_value %}
+                                        {{ "+" if change_pct >= 0 else "" }}{{ "%.2f"|format(change_pct) }}%
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if current_value %}
+                                        <span class="action-badge action-{{ action|lower }}" 
+                                              title="{{ action_reason or action }}">
+                                            {{ action }}
+                                        </span>
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </td>
+                                <td>{{ holding.risk_bucket }}</td>
+                                <td>
+                                    <button class="btn-icon btn-edit" data-ticker="{{ ticker }}" title="Edit">✏️</button>
+                                    <button class="btn-icon btn-delete" data-ticker="{{ ticker }}" title="Delete">🗑️</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if portfolio_pnl.totals %}
+                            <tr class="total-row">
+                                <td><strong>TOTAL</strong></td>
+                                <td></td>
+                                <td></td>
+                                <td><strong>£{{ "%.2f"|format(portfolio_pnl.totals.total_baseline_value) }}</strong></td>
+                                <td><strong>£{{ "%.2f"|format(portfolio_pnl.totals.total_current_value) }}</strong></td>
+                                <td class="{% if portfolio_pnl.totals.total_change_gbp >= 0 %}positive{% else %}negative{% endif %}">
+                                    <strong>{{ "+" if portfolio_pnl.totals.total_change_gbp >= 0 else "" }}£{{ "%.2f"|format(portfolio_pnl.totals.total_change_gbp) }}</strong>
+                                </td>
+                                <td class="{% if portfolio_pnl.totals.total_change_pct >= 0 %}positive{% else %}negative{% endif %}">
+                                    <strong>{{ "+" if portfolio_pnl.totals.total_change_pct >= 0 else "" }}{{ "%.2f"|format(portfolio_pnl.totals.total_change_pct) }}%</strong>
+                                </td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Buy Recommendations -->
+            <div class="card buy-recommendations">
+                <div class="card-header">
+                    <h2>💰 Buy Recommendations</h2>
+                    <button id="btn-refresh-buys" class="btn btn-small btn-secondary">Refresh</button>
+                </div>
+                <div id="buy-recommendations-content">
+                    <p class="loading">Loading buy recommendations...</p>
+                </div>
+            </div>
+
+            <!-- Risk History Chart -->
+            <div class="card risk-history">
+                <h2>Risk Score History</h2>
+                <div class="history-container">
+                    {% if history %}
+                    <canvas id="history-chart"></canvas>
+                    {% else %}
+                    <p>No history data available yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Latest Report Preview -->
+            {% if latest_report %}
+            <div class="card report-preview">
+                <h2>Latest Report Preview</h2>
+                <div class="report-content">
+                    <pre id="report-content">{{ latest_report.content[:1000] }}...</pre>
+                    <a href="/reports/{{ latest_report.html_path }}" target="_blank" class="btn btn-small">View Full Report</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Edit Holding Modal -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Edit Holding</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="edit-form">
+                    <input type="hidden" id="edit-ticker" name="ticker">
+                    <div class="form-group">
+                        <label for="edit-symbol">Symbol:</label>
+                        <input type="text" id="edit-symbol" name="symbol" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-shares">Shares:</label>
+                        <input type="number" id="edit-shares" name="shares" step="0.00000001" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-baseline">Baseline Value (£):</label>
+                        <input type="number" id="edit-baseline" name="baseline_value_gbp" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-type">Type:</label>
+                        <input type="text" id="edit-type" name="type" value="equity">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-risk-bucket">Risk Bucket:</label>
+                        <select id="edit-risk-bucket" name="risk_bucket">
+                            <option value="low-beta-uk">Low Beta UK</option>
+                            <option value="core-ai">Core AI</option>
+                            <option value="high-beta-ai">High Beta AI</option>
+                            <option value="crypto-beta">Crypto Beta</option>
+                            <option value="unknown">Unknown</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn btn-secondary" id="btn-cancel">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Holding Modal -->
+    <div id="add-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Holding</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="add-form">
+                    <div class="form-group">
+                        <label for="add-ticker">Ticker:</label>
+                        <input type="text" id="add-ticker" name="ticker" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-symbol">Symbol:</label>
+                        <input type="text" id="add-symbol" name="symbol" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-shares">Shares:</label>
+                        <input type="number" id="add-shares" name="shares" step="0.00000001" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-baseline">Baseline Value (£):</label>
+                        <input type="number" id="add-baseline" name="baseline_value_gbp" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-type">Type:</label>
+                        <input type="text" id="add-type" name="type" value="equity">
+                    </div>
+                    <div class="form-group">
+                        <label for="add-risk-bucket">Risk Bucket:</label>
+                        <select id="add-risk-bucket" name="risk_bucket">
+                            <option value="low-beta-uk">Low Beta UK</option>
+                            <option value="core-ai">Core AI</option>
+                            <option value="high-beta-ai">High Beta AI</option>
+                            <option value="crypto-beta">Crypto Beta</option>
+                            <option value="unknown">Unknown</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Add</button>
+                        <button type="button" class="btn btn-secondary" id="btn-cancel-add">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    {% if history %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Initialize history chart
+        const historyData = {{ history|tojson }};
+        if (historyData.length > 0) {
+            const ctx = document.getElementById('history-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: historyData.map(h => h.date).reverse(),
+                    datasets: [{
+                        label: 'Risk Score',
+                        data: historyData.map(h => h.risk_score).reverse(),
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+    {% endif %}
+</body>
+</html>
+

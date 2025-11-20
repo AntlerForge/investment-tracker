@@ -1,0 +1,88 @@
+================================================================================
+PORTFOLIO RECOMMENDATIONS - DISCUSSION FORMAT
+================================================================================
+Generated: 2025-11-20 13:47:09
+Current Portfolio Value: £428.59
+
+────────────────────────────────────────────────────────────────────────────────
+SELL RECOMMENDATIONS
+────────────────────────────────────────────────────────────────────────────────
+
+1. SMCI (SMCI)
+   Action: SELL
+   Current Value: £55.66
+   P&L: -37.44%
+   Reason: (stop loss: -37.4%)
+
+2. MARA (MARA)
+   Action: SELL
+   Current Value: £14.39
+   P&L: -41.63%
+   Reason: (stop loss: -41.6%)
+
+3. CLSK (CLSK)
+   Action: SELL
+   Current Value: £6.22
+   P&L: -48.43%
+   Reason: (stop loss: -48.4%)
+
+Total Funds from Sales: £76.27
+
+────────────────────────────────────────────────────────────────────────────────
+BUY RECOMMENDATIONS
+────────────────────────────────────────────────────────────────────────────────
+Available Funds: £76.27
+
+1. MSFT - BUY
+   Confidence Score: 40/100
+   Suggested Allocation: £16.06
+
+   Signals:
+   • Insider buying detected
+   • Insider buying: 2 transaction(s), 1,238,472 shares
+   • Multiple insiders buying - strong conviction signal
+
+2. AMZN - BUY
+   Confidence Score: 40/100
+   Suggested Allocation: £16.06
+
+   Signals:
+   • Insider buying detected
+   • Insider buying: 4 transaction(s), 2,646,834,124 shares
+   • Multiple insiders buying - strong conviction signal
+
+3. META - BUY
+   Confidence Score: 40/100
+   Suggested Allocation: £16.06
+
+   Signals:
+   • Insider buying detected
+   • Insider buying: 3 transaction(s), 639,347 shares
+   • Multiple insiders buying - strong conviction signal
+
+4. TSLA - BUY
+   Confidence Score: 40/100
+   Suggested Allocation: £16.06
+
+   Signals:
+   • Insider buying detected
+   • Insider buying: 2 transaction(s), 521,192,339 shares
+   • Multiple insiders buying - strong conviction signal
+
+5. AAPL - CONSIDER
+   Confidence Score: 30/100
+   Suggested Allocation: £12.04
+
+   Signals:
+   • Insider buying detected
+   • Insider buying: 1 transaction(s), 175,408 shares
+
+================================================================================
+SUMMARY
+================================================================================
+Sell Actions: 3
+Buy Opportunities: 5
+Funds Available: £76.27
+
+Review these recommendations and discuss before executing trades.
+================================================================================

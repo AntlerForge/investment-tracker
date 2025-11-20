@@ -1,0 +1,54 @@
+run_time_uk: "19:30"
+base_currency: "GBP"
+
+macro:
+  vix:
+    sell_high_beta_above: 20.0
+    de_risk_all_above: 25.0
+  credit_spreads:
+    hyg_drop_threshold_pct: -1.0
+    hyg_vs_qqq_flat_window_days: 1
+  yields:
+    ten_year_spike_bps: 15
+
+sector:
+  nvda_divergence:
+    nvda_drop_pct: -5.0
+    qqq_flat_band_pct: 1.0
+  semi_momentum:
+    index_symbol: "^SOX"
+    daily_drop_threshold_pct: -2.0
+
+stock_level:
+  insider_selling:
+    lookback_days: 14
+    severity_levels:
+      warning_cluster: 2  # number of insiders selling
+      critical_cluster: 3
+  options_activity:
+    watchlist: ["NVDA", "SMCI", "ARM"]
+    put_volume_multiplier_warning: 2.0
+    put_volume_multiplier_critical: 3.0
+
+buy_signals:
+  # REGULATORY AND EARLY INDICATOR SIGNALS ONLY
+  congressional:
+    cluster_threshold: 2  # number of senators buying same stock (stronger signal)
+    lookback_days: 30
+    min_confidence: 25  # Congressional buys are high confidence
+  insider_buying:
+    lookback_days: 30
+    min_confidence: 30  # Insider buys are very high confidence
+  institutional:
+    lookback_days: 90  # 13F filings are quarterly, so look back further
+    min_confidence: 20
+  market_conditions:
+    vix_low_threshold: 15.0  # VIX below this = good entry timing (only used with other signals)
+    vix_confidence: 5  # Low weight - just for timing
+  confidence_thresholds:
+    strong_buy: 60  # Need strong regulatory signals
+    buy: 40
+    consider: 25
+  min_confidence_to_show: 15  # Must have at least one regulatory signal
+  watchlist: []  # Empty = evaluate all Congressional trades, or specify symbols
+
