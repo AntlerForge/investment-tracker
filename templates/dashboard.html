@@ -74,7 +74,10 @@
                             {% set change_pct = pos.get("change_pct", 0) %}
                             {% set action = pos.get("action", "HOLD") %}
                             {% set action_reason = pos.get("action_reason", "") %}
-                            <tr data-ticker="{{ ticker }}">
+                            <tr 
+                                data-ticker="{{ ticker }}" 
+                                data-analysis-summary="{{ pos.get('analysis_summary', '')|e }}"
+                            >
                                 <td><strong>{{ ticker }}</strong></td>
                                 <td>{{ holding.symbol }}</td>
                                 <td class="editable" data-field="shares">{{ holding.shares }}</td>
@@ -119,7 +122,11 @@
                             {% endfor %}
                             {% if portfolio_pnl.totals %}
                             <tr class="total-row">
-                                <td><strong>TOTAL</strong></td>
+                                <td>
+                                    <strong>
+                                        TOTAL (Current Baseline, Age: {{ portfolio_pnl.totals.current_baseline_age_days|default(0) }} days)
+                                    </strong>
+                                </td>
                                 <td></td>
                                 <td></td>
                                 <td><strong>£{{ "%.2f"|format(portfolio_pnl.totals.total_baseline_value) }}</strong></td>
@@ -134,9 +141,44 @@
                                 <td></td>
                                 <td></td>
                             </tr>
+                            <tr class="total-row original-baseline-row">
+                                <td>
+                                    <strong>
+                                        TOTAL (Original Baseline, Age: {{ portfolio_pnl.totals.original_baseline_age_days|default(0) }} days)
+                                    </strong>
+                                </td>
+                                <td></td>
+                                <td></td>
+                                <td><strong>£{{ "%.2f"|format(portfolio_pnl.totals.original_baseline_total) }}</strong></td>
+                                <td><strong>£{{ "%.2f"|format(portfolio_pnl.totals.total_current_value) }}</strong></td>
+                                <td class="{% if portfolio_pnl.totals.original_pnl_gbp >= 0 %}positive{% else %}negative{% endif %}">
+                                    <strong>{{ "+" if portfolio_pnl.totals.original_pnl_gbp >= 0 else "" }}£{{ "%.2f"|format(portfolio_pnl.totals.original_pnl_gbp) }}</strong>
+                                </td>
+                                <td class="{% if portfolio_pnl.totals.original_pnl_pct >= 0 %}positive{% else %}negative{% endif %}">
+                                    <strong>{{ "+" if portfolio_pnl.totals.original_pnl_pct >= 0 else "" }}{{ "%.2f"|format(portfolio_pnl.totals.original_pnl_pct) }}%</strong>
+                                </td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
                             {% endif %}
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Portfolio Value Charts -->
+            <div class="card portfolio-charts">
+                <h2>📈 Portfolio Value Trends</h2>
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <h3>Since Current Baseline</h3>
+                        <canvas id="current-baseline-chart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3>Since Original Baseline</h3>
+                        <canvas id="original-baseline-chart"></canvas>
+                    </div>
                 </div>
             </div>
 
@@ -273,11 +315,15 @@
     <div id="toast" class="toast"></div>
 
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-    {% if history %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Initialize history chart
-        const historyData = {{ history|tojson }};
+        // Portfolio baseline values
+        const currentBaselineTotal = {{ portfolio_pnl.totals.total_baseline_value|default(0) }};
+        const originalBaselineTotal = {{ portfolio_pnl.totals.original_baseline_total|default(0) }};
+        const historyData = {{ history|tojson if history else '[]' }};
+        
+        {% if history %}
+        // Initialize risk score history chart
         if (historyData.length > 0) {
             const ctx = document.getElementById('history-chart').getContext('2d');
             new Chart(ctx, {
@@ -302,8 +348,184 @@
                 }
             });
         }
+        
+        // Initialize portfolio value charts
+        if (historyData.length > 0 && currentBaselineTotal > 0) {
+            // Filter out bad data (values that are clearly wrong, e.g., > 1000)
+            const validHistory = historyData.filter(h => h.portfolio_value && h.portfolio_value < 1000);
+            
+            if (validHistory.length === 0) {
+                console.warn('No valid history data for charts');
+            } else {
+            
+            // Sort history by date (oldest first)
+            const sortedHistory = [...validHistory].sort((a, b) => a.date.localeCompare(b.date));
+            
+            // Find the start date for current baseline (first valid data point, or when current holdings were established)
+            // For now, use the first valid data point as the current baseline start
+            const currentBaselineStartDate = sortedHistory[0].date;
+            
+            // Filter data for each chart based on start dates
+            const originalBaselineData = sortedHistory.filter(h => h.date >= originalBaselineDate);
+            const currentBaselineData = sortedHistory.filter(h => h.date >= currentBaselineStartDate);
+            
+            // Current Baseline Chart - shows data from when current baseline was established
+            if (currentBaselineData.length > 0) {
+                const currentDates = currentBaselineData.map(h => h.date);
+                const currentValues = currentBaselineData.map(h => h.portfolio_value);
+                
+                const currentCtx = document.getElementById('current-baseline-chart').getContext('2d');
+                new Chart(currentCtx, {
+                    type: 'line',
+                    data: {
+                        labels: currentDates,
+                        datasets: [{
+                            label: 'Portfolio Value',
+                            data: currentValues,
+                            borderColor: 'rgb(54, 162, 235)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            tension: 0.1,
+                            fill: true
+                        }, {
+                            label: 'Current Baseline',
+                            data: Array(currentDates.length).fill(currentBaselineTotal),
+                            borderColor: 'rgb(128, 128, 128)',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += '£' + context.parsed.y.toFixed(2);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Value (£)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '£' + value.toFixed(0);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Original Baseline Chart - shows data from original baseline date
+            if (originalBaselineTotal > 0 && originalBaselineData.length > 0) {
+                const originalDates = originalBaselineData.map(h => h.date);
+                const originalValues = originalBaselineData.map(h => h.portfolio_value);
+                
+                const originalCtx = document.getElementById('original-baseline-chart').getContext('2d');
+                new Chart(originalCtx, {
+                    type: 'line',
+                    data: {
+                        labels: originalDates,
+                        datasets: [{
+                            label: 'Portfolio Value',
+                            data: originalValues,
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                            tension: 0.1,
+                            fill: true
+                        }, {
+                            label: 'Original Baseline',
+                            data: Array(originalDates.length).fill(originalBaselineTotal),
+                            borderColor: 'rgb(128, 128, 128)',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += '£' + context.parsed.y.toFixed(2);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Value (£)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '£' + value.toFixed(0);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            }
+        }
+        {% endif %}
     </script>
-    {% endif %}
 </body>
 </html>
 

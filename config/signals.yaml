@@ -31,24 +31,44 @@ stock_level:
     put_volume_multiplier_critical: 3.0
 
 buy_signals:
-  # REGULATORY AND EARLY INDICATOR SIGNALS ONLY
+  # MULTI-FACTOR RECOMMENDATION ENGINE v2
+  # Focus: Medium/High Risk, High Reward opportunities
+  
+  # Early signal timing (for insider/congressional trades)
+  # We fetch data over a wider window but heavily weight recent activity.
+  early_signal_data_days: 90    # Look back 90 days for insider / congressional data
+  early_signal_focus_days: 21   # Trades in last 3 weeks get full weight in scoring
+  
+  # Congressional signals
   congressional:
     cluster_threshold: 2  # number of senators buying same stock (stronger signal)
-    lookback_days: 30
-    min_confidence: 25  # Congressional buys are high confidence
+    lookback_days: 90
+    min_confidence: 25
+  
+  # Insider buying signals
   insider_buying:
-    lookback_days: 30
-    min_confidence: 30  # Insider buys are very high confidence
+    lookback_days: 90
+    min_confidence: 30
+  
+  # Institutional signals
   institutional:
     lookback_days: 90  # 13F filings are quarterly, so look back further
     min_confidence: 20
+  
+  # Market conditions
   market_conditions:
-    vix_low_threshold: 15.0  # VIX below this = good entry timing (only used with other signals)
-    vix_confidence: 5  # Low weight - just for timing
+    vix_low_threshold: 15.0  # VIX below this = good entry timing
+    vix_confidence: 5
+  
+  # Multi-factor scoring thresholds
   confidence_thresholds:
-    strong_buy: 60  # Need strong regulatory signals
-    buy: 40
-    consider: 25
-  min_confidence_to_show: 15  # Must have at least one regulatory signal
-  watchlist: []  # Empty = evaluate all Congressional trades, or specify symbols
+    strong_buy: 60  # Strong multi-factor alignment
+    buy: 40  # Good multi-factor signals
+    consider: 25  # Some positive factors
+  
+  # Minimum score to show recommendation
+  min_score_to_show: 25  # Must have meaningful signal combination
+  
+  # Watchlist (empty = evaluate all Congressional trades + default high-volatility stocks)
+  watchlist: []
 

@@ -94,19 +94,24 @@ header h1 {
     grid-row: 1;
 }
 
-.buy-recommendations {
+.portfolio-charts {
     grid-column: 1 / -1;
     grid-row: 2;
 }
 
+.buy-recommendations {
+    grid-column: 1 / -1;
+    grid-row: 3;
+}
+
 .risk-history {
     grid-column: 2;
-    grid-row: 3;
+    grid-row: 4;
 }
 
 .report-preview {
     grid-column: 1 / -1;
-    grid-row: 4;
+    grid-row: 5;
 }
 
 @media (max-width: 900px) {
@@ -116,6 +121,7 @@ header h1 {
     
     .risk-summary,
     .portfolio-holdings,
+    .portfolio-charts,
     .buy-recommendations,
     .risk-history,
     .report-preview {
@@ -142,6 +148,20 @@ header h1 {
     background-color: #f8f9fa;
     font-weight: bold;
     border-top: 2px solid #34495e;
+}
+
+.total-row.original-baseline-row {
+    background-color: #e3f2fd;
+    border-top: 2px solid #2196f3;
+    font-weight: 700;
+}
+
+.baseline-age {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: #7f8c8d;
+    margin-top: 2px;
 }
 
 .positive {
@@ -601,5 +621,132 @@ tbody tr:hover {
     background: white;
     padding: 15px;
     border-radius: 4px;
+}
+
+/* Multi-factor buy recommendations */
+.buy-details-section {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.buy-detail-item {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: white;
+    border-radius: 4px;
+    border-left: 3px solid #007bff;
+}
+
+.buy-detail-item ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+
+.buy-detail-item li {
+    margin: 4px 0;
+    font-size: 13px;
+    color: #555;
+}
+
+.risk-badge, .reward-badge {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.risk-badge.risk-high {
+    background: #ff6b6b;
+    color: white;
+}
+
+.risk-badge.risk-mediumhigh {
+    background: #ffa500;
+    color: white;
+}
+
+.risk-badge.risk-medium {
+    background: #ffd93d;
+    color: #333;
+}
+
+.reward-badge.reward-very-high {
+    background: #51cf66;
+    color: white;
+}
+
+.reward-badge.reward-high {
+    background: #69db7c;
+    color: white;
+}
+
+.reward-badge.reward-moderate {
+    background: #c3fae8;
+    color: #333;
+}
+
+.buy-table th {
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.buy-table td {
+    font-size: 12px;
+    padding: 8px 6px;
+}
+
+/* Portfolio Charts Styles */
+.portfolio-charts {
+    min-height: 400px;
+}
+
+.charts-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.chart-wrapper {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.chart-wrapper h3 {
+    margin: 0 0 15px 0;
+    color: #2c3e50;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.chart-wrapper canvas {
+    max-height: 300px;
+}
+
+@media (max-width: 900px) {
+    .charts-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .portfolio-charts {
+        grid-row: 2;
+    }
+    
+    .buy-recommendations {
+        grid-row: 3;
+    }
+    
+    .risk-history {
+        grid-row: 4;
+    }
+    
+    .report-preview {
+        grid-row: 5;
+    }
 }
 

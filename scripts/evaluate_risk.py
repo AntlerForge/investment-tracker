@@ -104,6 +104,135 @@ def setup_logging(log_dir: Path, evaluation_date: datetime) -> logging.Logger:
     return logging.getLogger(__name__)
 
 
+def _summarise_signals(signals: Dict[str, Any]) -> str:
+    """
+    Create a short text summary of a signals dict (macro / sector / stock).
+    This is deterministic and purely rule-based – no AI.
+    """
+    if not signals:
+        return "No specific signals were triggered."
+
+    positive_keys: List[str] = []
+    negative_keys: List[str] = []
+
+    for key, value in signals.items():
+        # Treat True / positive numbers as positive, False / negative as negative
+        if isinstance(value, (int, float)):
+            if value > 0:
+                positive_keys.append(key)
+            elif value < 0:
+                negative_keys.append(key)
+        elif isinstance(value, bool):
+            if value:
+                positive_keys.append(key)
+        # Ignore other types for this simple summary
+
+    parts: List[str] = []
+    if positive_keys:
+        parts.append(
+            f"Constructive signals: {', '.join(sorted(positive_keys))}."
+        )
+    if negative_keys:
+        parts.append(
+            f"Caution signals: {', '.join(sorted(negative_keys))}."
+        )
+
+    if not parts:
+        return "Signals are mostly neutral with no strong positives or negatives."
+
+    return " ".join(parts)
+
+
+def build_position_summary(
+    pos: Dict[str, Any],
+    macro_signals: Dict[str, Any],
+    sector_signals: Dict[str, Any],
+    stock_signals: Dict[str, Any]
+) -> str:
+    """
+    Build a ~250-word style summary for a single holding.
+
+    The goal is to provide a rich but deterministic narrative that explains:
+    - Baseline vs current value and P&L
+    - Risk bucket and action
+    - Macro / sector / stock-level context
+    """
+    ticker = pos.get("ticker", "")
+    symbol = pos.get("symbol", ticker)
+    baseline = float(pos.get("baseline_value_gbp", 0.0) or 0.0)
+    current = float(pos.get("current_value_gbp", 0.0) or 0.0)
+    change_gbp = float(pos.get("change_gbp", 0.0) or 0.0)
+    change_pct = float(pos.get("change_pct", 0.0) or 0.0)
+    risk_bucket = str(pos.get("risk_bucket", "unknown"))
+    action = str(pos.get("action", "HOLD"))
+    action_reason = str(pos.get("action_reason", "") or "").strip()
+
+    direction_prefix = "+" if change_gbp >= 0 else ""
+    pct_prefix = "+" if change_pct >= 0 else ""
+
+    # Core valuation and rule context
+    intro = (
+        f"{ticker} ({symbol}) is currently valued at £{current:.2f} "
+        f"against a baseline of £{baseline:.2f}, giving a mark-to-market "
+        f"change of {direction_prefix}£{change_gbp:.2f} "
+        f"({pct_prefix}{change_pct:.2f}%). "
+    )
+
+    bucket_text = (
+        f"It sits in the '{risk_bucket}' risk bucket, which reflects how much "
+        f"volatility and drawdown we are prepared to tolerate for this position. "
+    )
+
+    if action_reason:
+        action_text = (
+            f"The current rule-based action is **{action}** {action_reason}. "
+        )
+    else:
+        action_text = (
+            f"The current rule-based action is **{action}**, with the position "
+            f"remaining inside the normal tolerance band for now. "
+        )
+
+    # Macro, sector and stock signal summaries
+    macro_text = (
+        "From a macro perspective, the broader market backdrop is interpreted "
+        "through indicators such as VIX, credit spreads and key index levels. "
+        f"{_summarise_signals(macro_signals)} "
+    )
+
+    sector_text = (
+        "Sector-level signals capture whether the immediate ecosystem around "
+        f"{ticker} is trending risk-on or risk-off relative to the wider market. "
+        f"{_summarise_signals(sector_signals)} "
+    )
+
+    stock_text = (
+        "At the stock level, the engine folds together insider activity, options "
+        "flows and other micro signals into a single risk-adjusted tilt. "
+        f"{_summarise_signals(stock_signals)} "
+    )
+
+    forward_look = (
+        "Taken together, this keeps the emphasis on medium to high risk and "
+        "high potential reward, while staying anchored to explicit rules rather "
+        "than intuition. The summary should be read as a snapshot, updated each "
+        "time a fresh evaluation is run rather than a standing recommendation. "
+    )
+
+    # Join everything into one long paragraph suitable for a hover tooltip
+    summary = (
+        intro
+        + bucket_text
+        + action_text
+        + macro_text
+        + sector_text
+        + stock_text
+        + forward_look
+    )
+
+    return summary
+
+
 def load_config(config_path: str) -> Dict[str, Any]:
     """
     Load portfolio configuration from YAML file.
@@ -351,19 +480,40 @@ def main():
         
         logger.info(f"Risk score: {risk_score}/100 ({risk_level})")
         
-        # Update positions with signal-adjusted actions
-        sell_recommendations = []
+        # Update positions with signal-adjusted actions and build per-holding notes
+        sell_recommendations: List[Dict[str, Any]] = []
         for pos in positions:
+            symbol = pos["symbol"]
+            stock_signals_for_symbol = all_stock_signals.get(symbol, {})
+
             signals_dict = {
                 "macro": macro_signals,
                 "sector": sector_signals,
-                "stock": all_stock_signals.get(pos["symbol"], {})
+                "stock": stock_signals_for_symbol
             }
             base_action = Action(pos["action"])
             final_action = apply_signal_adjustments(
                 base_action, signals_dict, pos["risk_bucket"]
             )
             pos["action"] = final_action.value
+
+            # Build a deterministic analysis summary for this holding
+            try:
+                pos["analysis_summary"] = build_position_summary(
+                    pos,
+                    macro_signals=macro_signals,
+                    sector_signals=sector_signals,
+                    stock_signals=stock_signals_for_symbol
+                )
+            except Exception as e:
+                # If anything goes wrong, don't break the evaluation – just log and continue
+                logger.warning(
+                    f"Could not build analysis summary for {pos.get('ticker')}: {e}",
+                    exc_info=True
+                )
+                pos["analysis_summary"] = (
+                    "Summary unavailable due to an internal error while building the note."
+                )
             
             # Collect sell recommendations
             if final_action.value in ["SELL", "REDUCE"]:

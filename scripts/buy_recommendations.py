@@ -169,14 +169,25 @@ def _fetch_house_stock_watcher(cutoff_date: datetime) -> List[Dict[str, Any]]:
     trades = []
     try:
         # House Stock Watcher has a public API endpoint
-        # Try their trades endpoint
+        # Try their trades endpoint (structure can change, so parse defensively)
         url = "https://housestockwatcher.com/api/trades"
         headers = {'User-Agent': 'Mozilla/5.0'}
         
         response = requests.get(url, headers=headers, timeout=10)
         if response.status_code == 200:
             data = response.json()
-            for trade in data.get('trades', []):
+
+            # API sometimes returns a list, sometimes wraps in a dict
+            items = []
+            if isinstance(data, list):
+                items = data
+            elif isinstance(data, dict):
+                for key in ("trades", "data", "results"):
+                    if isinstance(data.get(key), list):
+                        items = data[key]
+                        break
+
+            for trade in items:
                 parsed = _parse_stock_watcher_trade(trade, cutoff_date, 'house')
                 if parsed:
                     trades.append(parsed)
@@ -197,7 +208,17 @@ def _fetch_senate_stock_watcher(cutoff_date: datetime) -> List[Dict[str, Any]]:
         response = requests.get(url, headers=headers, timeout=10)
         if response.status_code == 200:
             data = response.json()
-            for trade in data.get('trades', []):
+
+            items = []
+            if isinstance(data, list):
+                items = data
+            elif isinstance(data, dict):
+                for key in ("trades", "data", "results"):
+                    if isinstance(data.get(key), list):
+                        items = data[key]
+                        break
+
+            for trade in items:
                 parsed = _parse_stock_watcher_trade(trade, cutoff_date, 'senate')
                 if parsed:
                     trades.append(parsed)
@@ -210,39 +231,90 @@ def _fetch_senate_stock_watcher(cutoff_date: datetime) -> List[Dict[str, Any]]:
 def _parse_stock_watcher_trade(trade_data: Dict, cutoff_date: datetime, source: str) -> Optional[Dict[str, Any]]:
     """Parse trade from House/Senate Stock Watcher format."""
     try:
-        # Parse date - try multiple formats
-        date_str = trade_data.get('transaction_date') or trade_data.get('date') or trade_data.get('filing_date')
+        # Parse date - API fields vary by source, so try multiple keys
+        date_str = None
+        for key in (
+            "transaction_date", "TransactionDate",
+            "trade_date", "TradeDate",
+            "date", "Date",
+            "filing_date", "FilingDate"
+        ):
+            if trade_data.get(key):
+                date_str = str(trade_data.get(key))
+                break
+
         if not date_str:
             return None
         
         # Try different date formats
-        for fmt in ["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%m/%d/%Y"]:
+        trade_date = None
+        for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%m/%d/%Y"):
             try:
                 trade_date = datetime.strptime(date_str.split('T')[0], fmt)
                 break
             except ValueError:
                 continue
-        else:
+        if trade_date is None:
             return None
         
         if trade_date < cutoff_date:
             return None
         
         # Check if it's a buy
-        transaction_type = str(trade_data.get('transaction_type', '')).lower()
-        transaction = str(trade_data.get('transaction', '')).lower()
+        tx_type_raw = None
+        for key in ("transaction_type", "Transaction", "transaction"):
+            if trade_data.get(key):
+                tx_type_raw = str(trade_data.get(key))
+                break
+        transaction_type = (tx_type_raw or "").lower()
+
+        description = ""
+        for key in ("description", "transaction_text", "trade_type"):
+            if trade_data.get(key):
+                description = str(trade_data.get(key)).lower()
+                break
         
         if 'buy' not in transaction_type and 'purchase' not in transaction_type and \
-           'buy' not in transaction and 'purchase' not in transaction:
+           'buy' not in description and 'purchase' not in description:
             return None
         
+        # Ticker symbol can appear under a few different keys
+        ticker = (
+            trade_data.get('ticker')
+            or trade_data.get('Ticker')
+            or trade_data.get('symbol')
+            or trade_data.get('Symbol')
+            or ""
+        )
+
+        amount = (
+            trade_data.get('amount', 0)
+            or trade_data.get('Amount', 0)
+            or trade_data.get('value', 0)
+            or trade_data.get('Value', 0)
+        )
+
+        senator = (
+            trade_data.get('representative')
+            or trade_data.get('Representative')
+            or trade_data.get('name')
+            or trade_data.get('politician')
+            or ""
+        )
+
+        disclosure_date = (
+            trade_data.get('disclosure_date')
+            or trade_data.get('DisclosureDate')
+            or ""
+        )
+
         return {
-            "ticker": str(trade_data.get('ticker', '')).upper(),
+            "ticker": str(ticker).upper(),
             "transaction_type": "buy",
-            "amount": trade_data.get('amount', 0) or trade_data.get('value', 0),
+            "amount": amount,
             "date": trade_date,
-            "senator": trade_data.get('representative') or trade_data.get('name') or trade_data.get('politician', ''),
-            "disclosure_date": trade_data.get('disclosure_date', ''),
+            "senator": senator,
+            "disclosure_date": disclosure_date,
             "source": source
         }
     except (ValueError, KeyError, TypeError) as e:
@@ -339,11 +411,78 @@ def fetch_insider_trades_sec(symbol: str, lookback_days: int = 30) -> List[Dict[
                             buy_codes = ['P', 'A', 'G', 'I']
                             
                             if transaction_code in buy_codes:
+                                # IMPORTANT: "share" field is total shares held AFTER transaction, not transaction amount
+                                # Use "change" field for the actual transaction amount (shares bought/sold)
+                                transaction_shares = transaction.get("change", 0) or 0
+                                
+                                # Fallback to "share" if "change" not available (shouldn't happen with Finnhub)
+                                if transaction_shares == 0:
+                                    transaction_shares = transaction.get("share", 0) or transaction.get("shares", 0) or 0
+                                
+                                # Get price - could be "transactionPrice" or "price"
+                                price = transaction.get("transactionPrice", 0) or transaction.get("price", 0) or 0
+                                
+                                # Get transaction value directly if available (usually not provided by Finnhub)
+                                value = transaction.get("value", 0) or transaction.get("amount", 0) or 0
+                                
+                                # Log raw data for debugging
+                                logger.debug(f"Raw insider transaction for {symbol}: change={transaction_shares}, price={price}, value={value}, code={transaction_code}, name={transaction.get('name', 'Unknown')}")
+                                
+                                # Validate transaction shares - filter out obviously wrong values
+                                # Different limits for different transaction types:
+                                # - "P" (Purchase): Usually small, cap at 10 million shares
+                                # - "A" (Acquisition): Can be larger (options exercises, etc.), cap at 100 million
+                                # - "G" (Gift): Usually small, cap at 10 million
+                                # - "I" (Discretionary): Usually small, cap at 10 million
+                                max_shares = {
+                                    'P': 10_000_000,  # Purchase
+                                    'A': 100_000_000,  # Acquisition (can be larger due to options exercises)
+                                    'G': 10_000_000,   # Gift
+                                    'I': 10_000_000    # Discretionary
+                                }.get(transaction_code, 10_000_000)
+                                
+                                if transaction_shares > max_shares:
+                                    logger.warning(f"Filtering out suspicious transaction share count for {symbol}: {transaction_shares:,.0f} shares (insider: {transaction.get('name', 'Unknown')}, code: {transaction_code}, max: {max_shares:,})")
+                                    continue
+                                
+                                # Validate price is reasonable (between $0.01 and $10,000 per share)
+                                if price > 0 and (price < 0.01 or price > 10_000):
+                                    logger.warning(f"Filtering out suspicious price for {symbol}: ${price:.2f} per share (insider: {transaction.get('name', 'Unknown')})")
+                                    continue
+                                
+                                # Calculate value from transaction_shares * price
+                                if value == 0 and transaction_shares > 0 and price > 0:
+                                    value = transaction_shares * price
+                                    logger.debug(f"Calculated value from change*price for {symbol}: ${value:,.2f} ({transaction_shares:,.0f} shares @ ${price:.2f})")
+                                
+                                # Validate calculated value - filter out obviously wrong values
+                                # Different limits for different transaction types:
+                                # - "P" (Purchase): Usually $100K to $50M, cap at $500M
+                                # - "A" (Acquisition): Can be larger (options exercises), cap at $5B
+                                # - "G" (Gift): Usually small, cap at $100M
+                                # - "I" (Discretionary): Usually small, cap at $100M
+                                max_value = {
+                                    'P': 500_000_000,   # Purchase
+                                    'A': 5_000_000_000,  # Acquisition (can be larger)
+                                    'G': 100_000_000,    # Gift
+                                    'I': 100_000_000     # Discretionary
+                                }.get(transaction_code, 500_000_000)
+                                
+                                if value > max_value:
+                                    logger.warning(f"Filtering out suspicious transaction value for {symbol}: ${value:,.0f} (insider: {transaction.get('name', 'Unknown')}, {transaction_shares:,.0f} shares @ ${price:.2f}, code: {transaction_code}, max: ${max_value:,})")
+                                    continue
+                                
+                                # Final validation: need valid shares and price to calculate value
+                                if value == 0 or (transaction_shares == 0 or price == 0):
+                                    logger.debug(f"Skipping transaction for {symbol}: no valid value data (change={transaction_shares}, price={price}, value={value})")
+                                    continue
+                                
                                 trades.append({
                                     "ticker": symbol.upper(),
                                     "transaction_type": "buy",
-                                    "shares": transaction.get("share", 0),
-                                    "price": transaction.get("transactionPrice", 0),
+                                    "shares": transaction_shares,  # Use change (actual transaction amount)
+                                    "price": price,
+                                    "value": value,  # Store calculated value
                                     "date": transaction_date,
                                     "insider": transaction.get("name", ""),
                                     "title": transaction.get("position", ""),
@@ -356,12 +495,17 @@ def fetch_insider_trades_sec(symbol: str, lookback_days: int = 30) -> List[Dict[
                 if trades:
                     logger.info(f"Fetched {len(trades)} insider buy transactions for {symbol} from Finnhub")
                     return trades
+                else:
+                    logger.debug(f"No insider buy transactions found for {symbol} in last {lookback_days} days")
+            else:
+                logger.debug(f"Finnhub API returned status {response.status_code} for {symbol}")
         except Exception as e:
-            logger.debug(f"Finnhub API failed for {symbol}: {e}")
+            logger.warning(f"Finnhub API failed for {symbol}: {e}")
     
     # Fallback: SEC EDGAR scraping (more complex, slower)
     # Can be implemented with sec-api.io or direct EDGAR access
-    logger.debug(f"Insider trading data not available for {symbol} (add FINNHUB_API_KEY to .env)")
+    if not finnhub_key:
+        logger.debug(f"Insider trading data not available for {symbol} (FINNHUB_API_KEY not set in .env)")
     return trades
 
 
@@ -567,9 +711,27 @@ def evaluate_buy_signals(
     insider_buys = [t for t in insider_trades if t.get("transaction_type") == "buy"]
     if insider_buys:
         signals["insider_buying"] = True
-        total_shares = sum(t.get("shares", 0) for t in insider_buys)
+        total_shares = sum(t.get("shares", 0) or 0 for t in insider_buys)
+        
+        # Calculate total value for display
+        total_value = 0.0
+        for trade in insider_buys:
+            value = trade.get("value", 0) or 0
+            if value > 0:
+                total_value += value
+            else:
+                shares = trade.get("shares", 0) or 0
+                price = trade.get("price", 0) or 0
+                if shares > 0 and price > 0 and shares < 1_000_000_000:
+                    total_value += shares * price
+        
         signals["confidence_score"] += 30  # Increased weight
-        signals["reasons"].append(f"Insider buying: {len(insider_buys)} transaction(s), {total_shares:,.0f} shares")
+        
+        # Format the reason with value if available
+        if total_value > 0:
+            signals["reasons"].append(f"Insider buying: {len(insider_buys)} transaction(s), {total_shares:,.0f} shares, ${total_value:,.0f} value")
+        else:
+            signals["reasons"].append(f"Insider buying: {len(insider_buys)} transaction(s), {total_shares:,.0f} shares")
         
         # If multiple insiders buying, even stronger signal
         if len(insider_buys) >= 2:
@@ -599,7 +761,8 @@ def evaluate_buy_signals(
 def generate_buy_recommendations(
     available_funds: float,
     watchlist: Optional[List[str]] = None,
-    buy_config: Dict[str, Any] = None
+    buy_config: Dict[str, Any] = None,
+    use_v2: bool = True
 ) -> List[Dict[str, Any]]:
     """
     Generate buy recommendations based on available funds and signals.
@@ -608,17 +771,28 @@ def generate_buy_recommendations(
         available_funds: Amount available to invest (GBP)
         watchlist: Optional list of symbols to consider
         buy_config: Buy signal configuration
+        use_v2: Use new multi-factor recommendation engine (default: True)
         
     Returns:
         List of buy recommendations with:
         - symbol: Stock ticker
         - recommendation: "STRONG BUY", "BUY", "CONSIDER"
-        - confidence_score: 0-100
+        - confidence_score: 0-100 (v1) or total_score (v2)
         - reasons: List of reasons
         - suggested_allocation: Suggested amount to invest
         - current_price: Current stock price
         - current_price_gbp: Current price in GBP
     """
+    # Use new multi-factor engine by default
+    if use_v2:
+        try:
+            from buy_recommendations_v2 import generate_multi_factor_recommendations
+            logger.info("Using multi-factor recommendation engine v2")
+            return generate_multi_factor_recommendations(available_funds, watchlist, buy_config)
+        except ImportError as e:
+            logger.warning(f"Could not import v2 engine, falling back to v1: {e}")
+            use_v2 = False
+    
     if buy_config is None:
         buy_config = {}
     
@@ -735,6 +909,41 @@ def generate_buy_recommendations(
                 currency = "USD"
                 current_price_gbp = current_price * fx_rate
         
+        # Calculate total insider buying value
+        insider_buying_value_usd = 0.0
+        insider_buying_value_gbp = 0.0
+        if signals["insider_buying"] and insider_trades:
+            insider_buys = [t for t in insider_trades if t.get("transaction_type") == "buy"]
+            logger.info(f"Calculating insider buying value for {symbol}: {len(insider_buys)} buy transactions")
+            
+            for trade in insider_buys:
+                # Use the transaction value (already validated when fetched)
+                trade_value = trade.get("value", 0) or 0
+                
+                # Additional safety check - cap at $10 billion per transaction
+                if trade_value > 10_000_000_000:
+                    logger.warning(f"Capping suspicious trade value for {symbol}: ${trade_value:,.0f} -> $10,000,000,000")
+                    trade_value = 10_000_000_000
+                
+                if trade_value > 0:
+                    insider_buying_value_usd += trade_value
+                    logger.debug(f"  Added trade value: ${trade_value:,.2f} (insider: {trade.get('insider', 'Unknown')}, shares: {trade.get('shares', 0):,.0f})")
+                else:
+                    logger.warning(f"Skipping trade with zero value for {symbol}: {trade}")
+            
+            # Final validation: total should be reasonable (less than $100 billion)
+            if insider_buying_value_usd > 100_000_000_000:
+                logger.warning(f"Capping total insider buying value for {symbol}: ${insider_buying_value_usd:,.0f} -> $100,000,000,000")
+                insider_buying_value_usd = 100_000_000_000
+            
+            logger.info(f"Total insider buying value for {symbol}: ${insider_buying_value_usd:,.2f} USD")
+            
+            # Convert to GBP (insider trades are typically in USD)
+            if ".L" in symbol:
+                insider_buying_value_gbp = insider_buying_value_usd  # UK stocks might be in GBP
+            else:
+                insider_buying_value_gbp = insider_buying_value_usd * fx_rate
+        
         rec = {
             "symbol": symbol,
             "recommendation": recommendation,
@@ -742,6 +951,8 @@ def generate_buy_recommendations(
             "reasons": signals["reasons"],
             "congressional_cluster": signals["congressional_cluster"],
             "insider_buying": signals["insider_buying"],
+            "insider_buying_value_usd": insider_buying_value_usd,
+            "insider_buying_value_gbp": insider_buying_value_gbp,
             "institutional_buying": signals.get("institutional_buying", False),
             "vix_low": signals["vix_low"],
             "current_price": current_price,

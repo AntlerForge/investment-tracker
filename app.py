@@ -137,15 +137,31 @@ def load_risk_history() -> list:
 
 def calculate_portfolio_pnl(portfolio_config: Dict[str, Any]) -> Dict[str, Any]:
     """Calculate current portfolio values and P&L."""
-    if not all([fetch_all_prices, fetch_fx_rate, get_position_value, calculate_pnl]):
-        return {"positions": [], "totals": {}}
-    
     try:
+        # Import required functions
+        from scripts.fetch_market_data import clear_cache, _cache, fetch_all_prices, fetch_fx_rate
+        from scripts.portfolio_logic import get_position_value, calculate_pnl, evaluate_position_rules, aggregate_portfolio_metrics, Action
+        import time
+        # Import StateManager lazily to avoid circular imports
+        from scripts.state_manager import StateManager as ScriptStateManager
+        
         holdings = portfolio_config.get("holdings", {})
+
+        # Try to load the latest per-holding analysis summaries from shared state
+        analysis_summaries_by_ticker: Dict[str, str] = {}
+        try:
+            sm = ScriptStateManager(PROJECT_ROOT)
+            current_state = sm.load_state()
+            state_holdings = current_state.get("portfolio", {}).get("holdings", [])
+            for pos in state_holdings:
+                ticker = pos.get("ticker")
+                summary = pos.get("analysis_summary")
+                if ticker and summary:
+                    analysis_summaries_by_ticker[str(ticker)] = str(summary)
+        except Exception as e:
+            logger.warning(f"Could not load analysis summaries from state: {e}")
         
         # AGGRESSIVE cache clearing - clear multiple times to ensure it's gone
-        from scripts.fetch_market_data import clear_cache, _cache
-        import time
         
         # Clear cache multiple times with delays to ensure it's completely cleared
         for i in range(3):
@@ -215,12 +231,52 @@ def calculate_portfolio_pnl(portfolio_config: Dict[str, Any]) -> Dict[str, Any]:
                 "current_value_gbp": current_value_gbp,
                 "change_gbp": pnl["change_gbp"],
                 "change_pct": pnl["change_pct"],
-                "action": action.value,
-                "action_reason": action_reason
+                "action": action.value if hasattr(action, 'value') else str(action),
+                "action_reason": action_reason,
+                # Attach the latest analysis summary from the last evaluation, if available
+                "analysis_summary": analysis_summaries_by_ticker.get(ticker)
             })
         
-        # Calculate totals
+        # Calculate totals (current baseline)
         totals = aggregate_portfolio_metrics(positions)
+        
+        # Calculate totals against original experiment baseline
+        original_baseline_values = portfolio_config.get("original_baseline_values", {})
+        original_baseline_total = sum(original_baseline_values.values())
+        current_total = totals.get("total_current_value", 0.0)
+        original_pnl_gbp = current_total - original_baseline_total
+        original_pnl_pct = (original_pnl_gbp / original_baseline_total * 100) if original_baseline_total > 0 else 0.0
+        
+        totals["original_baseline_total"] = original_baseline_total
+        totals["original_pnl_gbp"] = original_pnl_gbp
+        totals["original_pnl_pct"] = original_pnl_pct
+
+        # Baseline ages in days (current vs original)
+        # Config semantics:
+        # - baseline_date / original_baseline_date: experiment start
+        # - current_baseline_date: date the current baseline values were locked
+        original_baseline_date_str = str(
+            portfolio_config.get("original_baseline_date", portfolio_config.get("baseline_date", "")) or ""
+        )
+        current_baseline_date_str = str(
+            portfolio_config.get("current_baseline_date", original_baseline_date_str) or ""
+        )
+        today = datetime.now().date()
+
+        def _age_days(date_str: str) -> int:
+            try:
+                # Expect ISO YYYY-MM-DD
+                d = datetime.strptime(date_str.split("T")[0], "%Y-%m-%d").date()
+                return max((today - d).days, 0)
+            except Exception:
+                return 0
+
+        totals["current_baseline_age_days"] = _age_days(current_baseline_date_str)
+        totals["original_baseline_age_days"] = _age_days(original_baseline_date_str)
+        logger.info(
+            f"Baseline ages (current/original): "
+            f"{totals['current_baseline_age_days']} / {totals['original_baseline_age_days']}"
+        )
         
         # Create a dictionary mapping tickers to their position data for easy lookup
         positions_by_ticker = {pos["ticker"]: pos for pos in positions}
@@ -272,9 +328,13 @@ def index():
     latest_report = load_latest_report()
     history = load_risk_history()[:30]  # Last 30 days
     
+    # Calculate portfolio P&L for template (needed for holdings table)
+    portfolio_pnl = calculate_portfolio_pnl(portfolio_config)
+    
     # AGGRESSIVE cache-control headers to prevent browser caching
     response = app.make_response(render_template('dashboard.html',
                          portfolio=portfolio_config,
+                         portfolio_pnl=portfolio_pnl,
                          latest_report=latest_report,
                          history=history,
                          holdings=holdings,
@@ -471,8 +531,12 @@ def get_history():
 def get_buy_recommendations():
     """Get buy recommendations based on current portfolio."""
     try:
-        # Force fresh calculation - clear cache first
+        # Import required functions
         from scripts.fetch_market_data import clear_cache
+        from scripts.buy_recommendations import generate_buy_recommendations
+        from scripts.recommendation_formatter import format_recommendations_for_discussion
+        
+        # Force fresh calculation - clear cache first
         clear_cache()
         
         portfolio_config = load_portfolio_config()
@@ -515,28 +579,26 @@ def get_buy_recommendations():
         
         # Generate buy recommendations
         buy_recommendations = []
-        if generate_buy_recommendations:
-            try:
-                buy_recommendations = generate_buy_recommendations(
-                    available_funds=available_funds,
-                    watchlist=buy_config.get("watchlist"),
-                    buy_config=buy_config
-                )
-            except Exception as e:
-                logger.error(f"Error generating buy recommendations: {e}", exc_info=True)
+        try:
+            buy_recommendations = generate_buy_recommendations(
+                available_funds=available_funds,
+                watchlist=buy_config.get("watchlist"),
+                buy_config=buy_config
+            )
+        except Exception as e:
+            logger.error(f"Error generating buy recommendations: {e}", exc_info=True)
         
         # Format for discussion
         recommendations_text = ""
-        if format_recommendations_for_discussion:
-            try:
-                recommendations_text = format_recommendations_for_discussion(
-                    sell_recommendations=sell_recommendations,
-                    buy_recommendations=buy_recommendations,
-                    available_funds=available_funds,
-                    portfolio_value=portfolio_pnl.get("totals", {}).get("total_current_value", 0.0)
-                )
-            except Exception as e:
-                logger.error(f"Error formatting recommendations: {e}", exc_info=True)
+        try:
+            recommendations_text = format_recommendations_for_discussion(
+                sell_recommendations=sell_recommendations,
+                buy_recommendations=buy_recommendations,
+                available_funds=available_funds,
+                portfolio_value=portfolio_pnl.get("totals", {}).get("total_current_value", 0.0)
+            )
+        except Exception as e:
+            logger.error(f"Error formatting recommendations: {e}", exc_info=True)
         
         return jsonify({
             "sell_recommendations": sell_recommendations,

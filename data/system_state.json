@@ -1,5 +1,5 @@
 {
-  "last_updated": "2025-11-20T13:47:09.931802",
+  "last_updated": "2025-12-10T09:41:00.646919",
   "system_status": "idle",
   "portfolio": {
     "holdings": [
@@ -8,223 +8,82 @@
         "symbol": "AML.L",
         "shares": 219.11553189,
         "baseline_value_gbp": 135.7,
-        "current_value_gbp": 129.825952644825,
-        "change_gbp": -5.87404735517498,
-        "change_pct": -4.328701072347075,
+        "current_value_gbp": 139.686151579875,
+        "change_gbp": 3.9861515798750133,
+        "change_pct": 2.937473529753142,
         "action": "HOLD",
         "action_reason": "",
-        "risk_bucket": "low-beta-uk"
+        "risk_bucket": "low-beta-uk",
+        "analysis_summary": "AML (AML.L) is currently valued at \u00a3139.69 against a baseline of \u00a3135.70, giving a mark-to-market change of +\u00a33.99 (+2.94%). It sits in the 'low-beta-uk' risk bucket, which reflects how much volatility and drawdown we are prepared to tolerate for this position. The current rule-based action is **HOLD**, with the position remaining inside the normal tolerance band for now. From a macro perspective, the broader market backdrop is interpreted through indicators such as VIX, credit spreads and key index levels. Signals are mostly neutral with no strong positives or negatives. Sector-level signals capture whether the immediate ecosystem around AML is trending risk-on or risk-off relative to the wider market. Signals are mostly neutral with no strong positives or negatives. At the stock level, the engine folds together insider activity, options flows and other micro signals into a single risk-adjusted tilt. Signals are mostly neutral with no strong positives or negatives. Taken together, this keeps the emphasis on medium to high risk and high potential reward, while staying anchored to explicit rules rather than intuition. The summary should be read as a snapshot, updated each time a fresh evaluation is run rather than a standing recommendation. "
       },
       {
         "ticker": "NVDA",
         "symbol": "NVDA",
         "shares": 0.92807971,
         "baseline_value_gbp": 131.73,
-        "current_value_gbp": 132.3339066673863,
-        "change_gbp": 0.6039066673862976,
-        "change_pct": 0.4584427749079918,
+        "current_value_gbp": 128.95274015708225,
+        "change_gbp": -2.7772598429177435,
+        "change_pct": -2.108297155482991,
         "action": "HOLD",
         "action_reason": "",
-        "risk_bucket": "core-ai"
-      },
-      {
-        "ticker": "SMCI",
-        "symbol": "SMCI",
-        "shares": 2.15872132,
-        "baseline_value_gbp": 88.97,
-        "current_value_gbp": 55.66386660946393,
-        "change_gbp": -33.30613339053607,
-        "change_pct": -37.43524040748125,
-        "action": "SELL",
-        "action_reason": "(stop loss: -37.4%)",
-        "risk_bucket": "high-beta-ai"
+        "risk_bucket": "core-ai",
+        "analysis_summary": "NVDA (NVDA) is currently valued at \u00a3128.95 against a baseline of \u00a3131.73, giving a mark-to-market change of \u00a3-2.78 (-2.11%). It sits in the 'core-ai' risk bucket, which reflects how much volatility and drawdown we are prepared to tolerate for this position. The current rule-based action is **HOLD**, with the position remaining inside the normal tolerance band for now. From a macro perspective, the broader market backdrop is interpreted through indicators such as VIX, credit spreads and key index levels. Signals are mostly neutral with no strong positives or negatives. Sector-level signals capture whether the immediate ecosystem around NVDA is trending risk-on or risk-off relative to the wider market. Signals are mostly neutral with no strong positives or negatives. At the stock level, the engine folds together insider activity, options flows and other micro signals into a single risk-adjusted tilt. Signals are mostly neutral with no strong positives or negatives. Taken together, this keeps the emphasis on medium to high risk and high potential reward, while staying anchored to explicit rules rather than intuition. The summary should be read as a snapshot, updated each time a fresh evaluation is run rather than a standing recommendation. "
       },
       {
         "ticker": "ARM",
         "symbol": "ARM",
         "shares": 0.44778043,
         "baseline_value_gbp": 54.03,
-        "current_value_gbp": 46.89369165905128,
-        "change_gbp": -7.136308340948723,
-        "change_pct": -13.208048012120532,
+        "current_value_gbp": 47.740098662907165,
+        "change_gbp": -6.289901337092836,
+        "change_pct": -11.641497940205138,
         "action": "HOLD",
         "action_reason": "",
-        "risk_bucket": "core-ai"
-      },
-      {
-        "ticker": "MARA",
-        "symbol": "MARA",
-        "shares": 1.69567153,
-        "baseline_value_gbp": 24.65,
-        "current_value_gbp": 14.388819215687414,
-        "change_gbp": -10.261180784312584,
-        "change_pct": -41.62750825278939,
-        "action": "SELL",
-        "action_reason": "(stop loss: -41.6%)",
-        "risk_bucket": "crypto-beta"
+        "risk_bucket": "core-ai",
+        "analysis_summary": "ARM (ARM) is currently valued at \u00a347.74 against a baseline of \u00a354.03, giving a mark-to-market change of \u00a3-6.29 (-11.64%). It sits in the 'core-ai' risk bucket, which reflects how much volatility and drawdown we are prepared to tolerate for this position. The current rule-based action is **HOLD**, with the position remaining inside the normal tolerance band for now. From a macro perspective, the broader market backdrop is interpreted through indicators such as VIX, credit spreads and key index levels. Signals are mostly neutral with no strong positives or negatives. Sector-level signals capture whether the immediate ecosystem around ARM is trending risk-on or risk-off relative to the wider market. Signals are mostly neutral with no strong positives or negatives. At the stock level, the engine folds together insider activity, options flows and other micro signals into a single risk-adjusted tilt. Signals are mostly neutral with no strong positives or negatives. Taken together, this keeps the emphasis on medium to high risk and high potential reward, while staying anchored to explicit rules rather than intuition. The summary should be read as a snapshot, updated each time a fresh evaluation is run rather than a standing recommendation. "
       },
       {
         "ticker": "AVGO",
         "symbol": "AVGO",
         "shares": 0.15967921,
         "baseline_value_gbp": 40.27,
-        "current_value_gbp": 43.26403739557913,
-        "change_gbp": 2.9940373955791273,
-        "change_pct": 7.434907860886832,
+        "current_value_gbp": 48.733601632960095,
+        "change_gbp": 8.463601632960092,
+        "change_pct": 21.017138398212296,
         "action": "HOLD",
         "action_reason": "",
-        "risk_bucket": "core-ai"
+        "risk_bucket": "core-ai",
+        "analysis_summary": "AVGO (AVGO) is currently valued at \u00a348.73 against a baseline of \u00a340.27, giving a mark-to-market change of +\u00a38.46 (+21.02%). It sits in the 'core-ai' risk bucket, which reflects how much volatility and drawdown we are prepared to tolerate for this position. The current rule-based action is **HOLD**, with the position remaining inside the normal tolerance band for now. From a macro perspective, the broader market backdrop is interpreted through indicators such as VIX, credit spreads and key index levels. Signals are mostly neutral with no strong positives or negatives. Sector-level signals capture whether the immediate ecosystem around AVGO is trending risk-on or risk-off relative to the wider market. Signals are mostly neutral with no strong positives or negatives. At the stock level, the engine folds together insider activity, options flows and other micro signals into a single risk-adjusted tilt. Signals are mostly neutral with no strong positives or negatives. Taken together, this keeps the emphasis on medium to high risk and high potential reward, while staying anchored to explicit rules rather than intuition. The summary should be read as a snapshot, updated each time a fresh evaluation is run rather than a standing recommendation. "
       },
       {
-        "ticker": "CLSK",
-        "symbol": "CLSK",
-        "shares": 0.79610785,
-        "baseline_value_gbp": 12.06,
-        "current_value_gbp": 6.219897829348584,
-        "change_gbp": -5.8401021706514165,
-        "change_pct": -48.42539113309632,
-        "action": "SELL",
-        "action_reason": "(stop loss: -48.4%)",
-        "risk_bucket": "crypto-beta"
+        "ticker": "AMZN",
+        "symbol": "AMZN",
+        "shares": 0.4635806,
+        "baseline_value_gbp": 80.08,
+        "current_value_gbp": 79.36914279773525,
+        "change_gbp": -0.7108572022647479,
+        "change_pct": -0.887683819011923,
+        "action": "HOLD",
+        "action_reason": "",
+        "risk_bucket": "core-ai",
+        "analysis_summary": "AMZN (AMZN) is currently valued at \u00a379.37 against a baseline of \u00a380.08, giving a mark-to-market change of \u00a3-0.71 (-0.89%). It sits in the 'core-ai' risk bucket, which reflects how much volatility and drawdown we are prepared to tolerate for this position. The current rule-based action is **HOLD**, with the position remaining inside the normal tolerance band for now. From a macro perspective, the broader market backdrop is interpreted through indicators such as VIX, credit spreads and key index levels. Signals are mostly neutral with no strong positives or negatives. Sector-level signals capture whether the immediate ecosystem around AMZN is trending risk-on or risk-off relative to the wider market. Signals are mostly neutral with no strong positives or negatives. At the stock level, the engine folds together insider activity, options flows and other micro signals into a single risk-adjusted tilt. Signals are mostly neutral with no strong positives or negatives. Taken together, this keeps the emphasis on medium to high risk and high potential reward, while staying anchored to explicit rules rather than intuition. The summary should be read as a snapshot, updated each time a fresh evaluation is run rather than a standing recommendation. "
       }
     ],
     "totals": {
-      "total_value_gbp": 428.59017202134163,
-      "total_baseline_value": 487.40999999999997,
-      "total_pnl_gbp": -58.81982797865834,
-      "total_pnl_pct": -12.067833646962175,
-      "available_funds": 76.27258365449993,
-      "fx_rate": 0.7644700028851098
+      "total_value_gbp": 444.48173483055973,
+      "total_baseline_value": 441.81,
+      "total_pnl_gbp": 2.6717348305597284,
+      "total_pnl_pct": 0.6047248433851041,
+      "available_funds": 0.0,
+      "fx_rate": 0.7511799722799567
     }
   },
   "recommendations": {
-    "buy": [
-      {
-        "symbol": "MSFT",
-        "recommendation": "BUY",
-        "confidence_score": 40,
-        "reasons": [
-          "Insider buying: 2 transaction(s), 1,238,472 shares",
-          "Multiple insiders buying - strong conviction signal"
-        ],
-        "congressional_cluster": 0,
-        "insider_buying": true,
-        "institutional_buying": false,
-        "vix_low": false,
-        "current_price": 487.12,
-        "current_price_gbp": 372.38862780539466,
-        "suggested_allocation_gbp": 16.0573860325263,
-        "suggested_shares": 0
-      },
-      {
-        "symbol": "AMZN",
-        "recommendation": "BUY",
-        "confidence_score": 40,
-        "reasons": [
-          "Insider buying: 4 transaction(s), 2,646,834,124 shares",
-          "Multiple insiders buying - strong conviction signal"
-        ],
-        "congressional_cluster": 0,
-        "insider_buying": true,
-        "institutional_buying": false,
-        "vix_low": false,
-        "current_price": 222.69,
-        "current_price_gbp": 170.2398249424851,
-        "suggested_allocation_gbp": 16.0573860325263,
-        "suggested_shares": 0
-      },
-      {
-        "symbol": "META",
-        "recommendation": "BUY",
-        "confidence_score": 40,
-        "reasons": [
-          "Insider buying: 3 transaction(s), 639,347 shares",
-          "Multiple insiders buying - strong conviction signal"
-        ],
-        "congressional_cluster": 0,
-        "insider_buying": true,
-        "institutional_buying": false,
-        "vix_low": false,
-        "current_price": 590.32,
-        "current_price_gbp": 451.28193210313805,
-        "suggested_allocation_gbp": 16.0573860325263,
-        "suggested_shares": 0
-      },
-      {
-        "symbol": "TSLA",
-        "recommendation": "BUY",
-        "confidence_score": 40,
-        "reasons": [
-          "Insider buying: 2 transaction(s), 521,192,339 shares",
-          "Multiple insiders buying - strong conviction signal"
-        ],
-        "congressional_cluster": 0,
-        "insider_buying": true,
-        "institutional_buying": false,
-        "vix_low": false,
-        "current_price": 403.99,
-        "current_price_gbp": 308.8382364655555,
-        "suggested_allocation_gbp": 16.0573860325263,
-        "suggested_shares": 0
-      },
-      {
-        "symbol": "AAPL",
-        "recommendation": "CONSIDER",
-        "confidence_score": 30,
-        "reasons": [
-          "Insider buying: 1 transaction(s), 175,408 shares"
-        ],
-        "congressional_cluster": 0,
-        "insider_buying": true,
-        "institutional_buying": false,
-        "vix_low": false,
-        "current_price": 268.56,
-        "current_price_gbp": 205.3060639748251,
-        "suggested_allocation_gbp": 12.043039524394725,
-        "suggested_shares": 0
-      }
-    ],
-    "sell": [
-      {
-        "ticker": "SMCI",
-        "symbol": "SMCI",
-        "shares": 2.15872132,
-        "baseline_value_gbp": 88.97,
-        "current_value_gbp": 55.66386660946393,
-        "change_gbp": -33.30613339053607,
-        "change_pct": -37.43524040748125,
-        "action": "SELL",
-        "action_reason": "(stop loss: -37.4%)",
-        "risk_bucket": "high-beta-ai"
-      },
-      {
-        "ticker": "MARA",
-        "symbol": "MARA",
-        "shares": 1.69567153,
-        "baseline_value_gbp": 24.65,
-        "current_value_gbp": 14.388819215687414,
-        "change_gbp": -10.261180784312584,
-        "change_pct": -41.62750825278939,
-        "action": "SELL",
-        "action_reason": "(stop loss: -41.6%)",
-        "risk_bucket": "crypto-beta"
-      },
-      {
-        "ticker": "CLSK",
-        "symbol": "CLSK",
-        "shares": 0.79610785,
-        "baseline_value_gbp": 12.06,
-        "current_value_gbp": 6.219897829348584,
-        "change_gbp": -5.8401021706514165,
-        "change_pct": -48.42539113309632,
-        "action": "SELL",
-        "action_reason": "(stop loss: -48.4%)",
-        "risk_bucket": "crypto-beta"
-      }
-    ]
+    "buy": [],
+    "sell": []
   },
   "risk_assessment": {
-    "risk_score": 5,
+    "risk_score": 0,
     "risk_level": "Low",
     "signals": {
       "macro": {
@@ -250,19 +109,7 @@
           "options_warning": false,
           "options_critical": false
         },
-        "SMCI": {
-          "warning_insider_selling": false,
-          "critical_insider_selling": false,
-          "options_warning": false,
-          "options_critical": false
-        },
         "ARM": {
-          "warning_insider_selling": false,
-          "critical_insider_selling": false,
-          "options_warning": false,
-          "options_critical": false
-        },
-        "MARA": {
           "warning_insider_selling": false,
           "critical_insider_selling": false,
           "options_warning": false,
@@ -274,7 +121,7 @@
           "options_warning": false,
           "options_critical": false
         },
-        "CLSK": {
+        "AMZN": {
           "warning_insider_selling": false,
           "critical_insider_selling": false,
           "options_warning": false,

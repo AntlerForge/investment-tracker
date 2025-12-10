@@ -6,12 +6,18 @@ const API_BASE = '/api';
 // Load buy recommendations
 async function loadBuyRecommendations() {
     const contentDiv = document.getElementById('buy-recommendations-content');
-    if (!contentDiv) return;
+    if (!contentDiv) {
+        console.error('Buy recommendations content div not found');
+        return;
+    }
     
     try {
         contentDiv.innerHTML = '<p class="loading">Loading buy recommendations...</p>';
         // Add cache-busting parameter to force fresh data
         const response = await fetch(`${API_BASE}/buy-recommendations?_t=${Date.now()}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         
         if (data.error) {
@@ -37,28 +43,114 @@ async function loadBuyRecommendations() {
         
         if (buyRecs.length > 0) {
             html += '<div class="buy-list">';
-            html += '<h3>Buy Opportunities</h3>';
-            html += '<table class="buy-table"><thead><tr>';
-            html += '<th>Symbol</th><th>Recommendation</th><th>Confidence</th>';
-            html += '<th>Price</th><th>Suggested Allocation</th><th>Signals</th>';
-            html += '</tr></thead><tbody>';
+            html += '<h3>Buy Opportunities (Multi-Factor Analysis)</h3>';
             
-            buyRecs.slice(0, 10).forEach(rec => {
-                const price = rec.current_price_gbp ? `£${rec.current_price_gbp.toFixed(2)}` : 'N/A';
-                const allocation = rec.suggested_allocation_gbp ? `£${rec.suggested_allocation_gbp.toFixed(2)}` : 'N/A';
-                const signals = rec.reasons ? rec.reasons.slice(0, 2).join('; ') : '';
+            // Check if using v2 format (has score_breakdown)
+            const isV2Format = buyRecs[0].score_breakdown !== undefined;
+            
+            if (isV2Format) {
+                // Multi-factor table format
+                html += '<table class="buy-table"><thead><tr>';
+                html += '<th>Symbol</th><th>Rec</th><th>Total Score</th>';
+                html += '<th>Early Signals</th><th>Technical</th><th>Risk/Reward</th><th>Market</th>';
+                html += '<th>Risk</th><th>Reward</th><th>Price</th><th>Insider Value</th><th>Allocation</th>';
+                html += '</tr></thead><tbody>';
                 
-                html += '<tr>';
-                html += `<td><strong>${rec.symbol}</strong></td>`;
-                html += `<td><span class="rec-badge rec-${rec.recommendation.toLowerCase().replace(' ', '-')}">${rec.recommendation}</span></td>`;
-                html += `<td>${rec.confidence_score}/100</td>`;
-                html += `<td>${price}</td>`;
-                html += `<td>${allocation}</td>`;
-                html += `<td class="signals">${signals}</td>`;
-                html += '</tr>';
-            });
+                buyRecs.slice(0, 15).forEach(rec => {
+                    const price = rec.current_price_gbp ? `£${rec.current_price_gbp.toFixed(2)}` : 'N/A';
+                    const insiderValue = rec.insider_buying_value_gbp && rec.insider_buying_value_gbp > 0 
+                        ? `£${rec.insider_buying_value_gbp.toLocaleString('en-GB', {minimumFractionDigits: 0, maximumFractionDigits: 0})}` 
+                        : 'N/A';
+                    const allocation = rec.suggested_allocation_gbp ? `£${rec.suggested_allocation_gbp.toFixed(2)}` : 'N/A';
+                    
+                    const scoreBreakdown = rec.score_breakdown || {};
+                    const earlyScore = scoreBreakdown.early_signals || 0;
+                    const techScore = scoreBreakdown.technical || 0;
+                    const riskRewardScore = scoreBreakdown.risk_reward || 0;
+                    const marketScore = scoreBreakdown.market_conditions || 0;
+                    const totalScore = rec.total_score || rec.confidence_score || 0;
+                    
+                    html += '<tr>';
+                    html += `<td><strong>${rec.symbol}</strong></td>`;
+                    html += `<td><span class="rec-badge rec-${rec.recommendation.toLowerCase().replace(' ', '-')}">${rec.recommendation}</span></td>`;
+                    html += `<td><strong>${totalScore}/100</strong></td>`;
+                    html += `<td>${earlyScore}/30</td>`;
+                    html += `<td>${techScore}/30</td>`;
+                    html += `<td>${riskRewardScore}/25</td>`;
+                    html += `<td>${marketScore}/15</td>`;
+                    html += `<td><span class="risk-badge risk-${(rec.risk_level || 'UNKNOWN').toLowerCase().replace('-', '')}">${rec.risk_level || 'N/A'}</span></td>`;
+                    html += `<td><span class="reward-badge reward-${(rec.reward_potential || 'UNKNOWN').toLowerCase().replace(' ', '-')}">${rec.reward_potential || 'N/A'}</span></td>`;
+                    html += `<td>${price}</td>`;
+                    html += `<td>${insiderValue}</td>`;
+                    html += `<td>${allocation}</td>`;
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table>';
+                
+                // Add expandable details section
+                html += '<div class="buy-details-section">';
+                html += '<h4>Detailed Signal Breakdown</h4>';
+                buyRecs.slice(0, 10).forEach(rec => {
+                    const reasons = rec.reasons || [];
+                    const factors = rec.factors || {};
+                    html += `<div class="buy-detail-item">`;
+                    html += `<strong>${rec.symbol}</strong> - ${rec.recommendation} (${rec.total_score || rec.confidence_score}/100)`;
+                    html += `<ul>`;
+                    reasons.forEach(reason => {
+                        html += `<li>${reason}</li>`;
+                    });
+                    if (factors.early_signals && factors.early_signals.recent_insider_buying) {
+                        const details = factors.early_signals.insider_details || {};
+                        html += `<li>Insider: ${details.count || 0} transaction(s), ${details.most_recent_days_ago || 'N/A'} days ago</li>`;
+                    }
+                    if (factors.technical) {
+                        const tech = factors.technical;
+                        if (tech.momentum) {
+                            html += `<li>Momentum: 5d=${tech.momentum['5d']?.toFixed(1) || 'N/A'}%, 20d=${tech.momentum['20d']?.toFixed(1) || 'N/A'}%</li>`;
+                        }
+                        if (rec.rsi) {
+                            html += `<li>RSI: ${rec.rsi.toFixed(1)}</li>`;
+                        }
+                    }
+                    if (rec.upside_potential_pct) {
+                        html += `<li>Upside Potential: ${rec.upside_potential_pct.toFixed(1)}%</li>`;
+                    }
+                    html += `</ul>`;
+                    html += `</div>`;
+                });
+                html += '</div>';
+            } else {
+                // Legacy v1 format
+                html += '<table class="buy-table"><thead><tr>';
+                html += '<th>Symbol</th><th>Recommendation</th><th>Confidence</th>';
+                html += '<th>Price</th><th>Insider Buying Value</th><th>Suggested Allocation</th><th>Signals</th>';
+                html += '</tr></thead><tbody>';
+                
+                buyRecs.slice(0, 10).forEach(rec => {
+                    const price = rec.current_price_gbp ? `£${rec.current_price_gbp.toFixed(2)}` : 'N/A';
+                    const insiderValue = rec.insider_buying_value_gbp && rec.insider_buying_value_gbp > 0 
+                        ? `£${rec.insider_buying_value_gbp.toLocaleString('en-GB', {minimumFractionDigits: 0, maximumFractionDigits: 0})}` 
+                        : 'N/A';
+                    const allocation = rec.suggested_allocation_gbp ? `£${rec.suggested_allocation_gbp.toFixed(2)}` : 'N/A';
+                    const signals = rec.reasons ? rec.reasons.slice(0, 2).join('; ') : '';
+                    const score = rec.total_score || rec.confidence_score || 0;
+                    
+                    html += '<tr>';
+                    html += `<td><strong>${rec.symbol}</strong></td>`;
+                    html += `<td><span class="rec-badge rec-${rec.recommendation.toLowerCase().replace(' ', '-')}">${rec.recommendation}</span></td>`;
+                    html += `<td>${score}/100</td>`;
+                    html += `<td>${price}</td>`;
+                    html += `<td>${insiderValue}</td>`;
+                    html += `<td>${allocation}</td>`;
+                    html += `<td class="signals">${signals}</td>`;
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table>';
+            }
             
-            html += '</tbody></table></div>';
+            html += '</div>';
             
             // Add discussion format text
             if (data.recommendations_text) {
@@ -422,4 +514,89 @@ document.querySelectorAll('.editable').forEach(cell => {
         }
     });
 });
+
+// ==========================
+// Holding analysis tooltips
+// ==========================
+
+(function setupHoldingTooltips() {
+    const rows = document.querySelectorAll('#holdings-tbody tr[data-ticker]');
+    if (!rows.length) {
+        console.debug('Holding tooltips: no rows with data-ticker found');
+        return;
+    }
+
+    // Create a single tooltip element we reuse for all rows
+    let tooltip = document.getElementById('holding-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'holding-tooltip';
+        tooltip.className = 'holding-tooltip';
+        tooltip.style.position = 'fixed';
+        tooltip.style.maxWidth = '420px';
+        tooltip.style.padding = '8px 10px';
+        tooltip.style.borderRadius = '6px';
+        tooltip.style.background = 'rgba(15, 23, 42, 0.96)'; // dark slate
+        tooltip.style.color = '#f9fafb';
+        tooltip.style.fontSize = '12px';
+        tooltip.style.lineHeight = '1.4';
+        tooltip.style.boxShadow = '0 6px 18px rgba(15, 23, 42, 0.45)';
+        tooltip.style.zIndex = '9999';
+        tooltip.style.pointerEvents = 'none';
+        tooltip.style.display = 'none';
+        document.body.appendChild(tooltip);
+    }
+
+    function showTooltip(text, x, y) {
+        if (!text) return;
+        tooltip.textContent = text;
+        tooltip.style.display = 'block';
+
+        // Basic positioning with viewport bounds check
+        const padding = 12;
+        const rect = tooltip.getBoundingClientRect();
+        let left = x + 16;
+        let top = y + 16;
+
+        if (left + rect.width + padding > window.innerWidth) {
+            left = x - rect.width - 16;
+        }
+        if (top + rect.height + padding > window.innerHeight) {
+            top = y - rect.height - 16;
+        }
+
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+    }
+
+    function hideTooltip() {
+        tooltip.style.display = 'none';
+    }
+
+    console.debug(`Holding tooltips: found ${rows.length} rows`);
+
+    rows.forEach(row => {
+        const summary = row.dataset.analysisSummary;
+        if (!summary) {
+            console.debug('Holding tooltips: missing analysisSummary for row', row.dataset.ticker);
+            return;
+        }
+
+        console.debug('Holding tooltips: attaching tooltip for', row.dataset.ticker);
+
+        row.addEventListener('mouseenter', (e) => {
+            showTooltip(summary, e.clientX, e.clientY);
+        });
+
+        row.addEventListener('mousemove', (e) => {
+            if (tooltip.style.display === 'block') {
+                showTooltip(summary, e.clientX, e.clientY);
+            }
+        });
+
+        row.addEventListener('mouseleave', () => {
+            hideTooltip();
+        });
+    });
+})();
 

@@ -105,3 +105,4 @@ class StateManager:
         except Exception as e:
             logger.error(f"Failed to update status: {e}")
 
+
