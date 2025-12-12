@@ -411,12 +411,17 @@
             // Sort history by date (oldest first)
             const sortedHistory = [...validHistory].sort((a, b) => a.date.localeCompare(b.date));
             
-            // Find the start date for current baseline (first valid data point, or when current holdings were established)
-            // For now, use the first valid data point as the current baseline start
-            const currentBaselineStartDate = sortedHistory[0].date;
+            // Start each chart from its configured baseline date.
+            // If the configured date is missing/blank, fall back to earliest available history point.
+            const currentBaselineStartDate = (currentBaselineDate && String(currentBaselineDate).length)
+                ? String(currentBaselineDate)
+                : sortedHistory[0].date;
+            const originalBaselineStartDate = (originalBaselineDate && String(originalBaselineDate).length)
+                ? String(originalBaselineDate)
+                : sortedHistory[0].date;
             
             // Filter data for each chart based on start dates
-            const originalBaselineData = sortedHistory.filter(h => h.date >= originalBaselineDate);
+            const originalBaselineData = sortedHistory.filter(h => h.date >= originalBaselineStartDate);
             const currentBaselineData = sortedHistory.filter(h => h.date >= currentBaselineStartDate);
             
             // Current Baseline Chart - shows data from when current baseline was established
