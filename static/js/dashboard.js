@@ -460,9 +460,9 @@ document.getElementById('btn-add-holding').addEventListener('click', () => {
 
 // Evaluate button
 document.getElementById('btn-evaluate').addEventListener('click', () => {
-    if (confirm('Run a new risk evaluation? This may take a minute.')) {
-        triggerEvaluation();
-    }
+    // Non-blocking: avoid confirm() modal which blocks the UI.
+    // If users click by accident, they can just ignore the status bar while it runs.
+    triggerEvaluation();
 });
 
 // Refresh button
