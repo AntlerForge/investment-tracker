@@ -229,7 +229,9 @@ def compute_risk_score(
     macro_signals: Dict[str, Any],
     sector_signals: Dict[str, Any],
     stock_signals: Dict[str, Dict[str, Any]],
-    portfolio_pnl_pct: float
+    portfolio_pnl_pct: float,
+    worst_position_pnl_pct: Optional[float] = None,
+    missing_market_inputs: Optional[List[str]] = None
 ) -> int:
     """
     Compute composite risk score (0-100).
@@ -281,6 +283,26 @@ def compute_risk_score(
         score += 10
     elif portfolio_pnl_pct <= -10:
         score += 5
+
+    # Position-level drawdown adjustment (0-10 points)
+    # Rationale: a portfolio can look "fine" while a single holding is in meaningful drawdown,
+    # which should still elevate risk management attention.
+    if worst_position_pnl_pct is not None:
+        if worst_position_pnl_pct <= -30:
+            score += 10
+        elif worst_position_pnl_pct <= -20:
+            score += 7
+        elif worst_position_pnl_pct <= -15:
+            score += 5
+        elif worst_position_pnl_pct <= -10:
+            score += 3
+
+    # Data completeness adjustment (0-10 points)
+    # If key inputs are missing, avoid reporting an overly-confident "0".
+    # This does NOT mean the market is risky; it means our risk *reading* is lower confidence.
+    if missing_market_inputs:
+        # light penalty: 1 point per missing key, capped
+        score += min(len(missing_market_inputs), 10)
     
     # Cap at 100
     return min(score, 100)

@@ -309,6 +309,9 @@ def index():
         risk_assessment = state.get("risk_assessment", {})
         risk_score = risk_assessment.get("risk_score", 0)
         risk_level = risk_assessment.get("risk_level", "Unknown")
+        risk_signals = risk_assessment.get("signals", {})
+        risk_missing_market_inputs = risk_assessment.get("missing_market_inputs", [])
+        risk_worst_position_pnl_pct = risk_assessment.get("worst_position_pnl_pct")
         
         last_updated = state.get("last_updated", "Never")
         system_status = state.get("system_status", "unknown")
@@ -320,6 +323,9 @@ def index():
         buy_recommendations = []
         risk_score = 0
         risk_level = "Unknown"
+        risk_signals = {}
+        risk_missing_market_inputs = []
+        risk_worst_position_pnl_pct = None
         last_updated = "Never"
         system_status = "error"
     
@@ -343,6 +349,9 @@ def index():
                          buy_recommendations=buy_recommendations,
                          risk_score=risk_score,
                          risk_level=risk_level,
+                         risk_signals=risk_signals,
+                         risk_missing_market_inputs=risk_missing_market_inputs,
+                         risk_worst_position_pnl_pct=risk_worst_position_pnl_pct,
                          last_updated=last_updated,
                          system_status=system_status))
     # Set multiple cache-busting headers

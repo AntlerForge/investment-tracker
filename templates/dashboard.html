@@ -26,22 +26,31 @@
             <!-- Risk Summary Card -->
             <div class="card risk-summary">
                 <h2>Risk Summary</h2>
-                {% if latest_report %}
                 <div class="risk-score">
-                    {% if latest_report.risk_score is not none %}
-                    <span class="score-value" id="risk-score">{{ latest_report.risk_score }}</span>
-                    <span class="score-label">Risk Score: {{ latest_report.risk_level or 'N/A' }}</span>
+                    <span class="score-value" id="risk-score">{{ risk_score }}</span>
+                    <span class="score-label">Risk-off Score: {{ risk_level }}</span>
+                </div>
+                <p class="muted">
+                    This is a <strong>risk-off / de-risking</strong> indicator (0 = calm/low signals, 100 = crisis/high signals),
+                    based on macro + sector + stock stress signals and drawdowns. It is <strong>not</strong> a “should I buy?” score.
+                </p>
+                {% if risk_worst_position_pnl_pct is not none %}
+                <p class="muted">
+                    Worst holding P&L: <strong>{{ "%.2f"|format(risk_worst_position_pnl_pct) }}%</strong>
+                </p>
+                {% endif %}
+                {% if risk_missing_market_inputs %}
+                <p class="muted">
+                    Data missing (lower confidence): {{ risk_missing_market_inputs|join(", ") }}
+                </p>
+                {% endif %}
+                <div class="risk-actions">
+                    {% if latest_report %}
+                    <a href="/reports/{{ latest_report.html_path }}" target="_blank" class="btn btn-small">View Full Report</a>
                     {% else %}
-                    <span class="score-value" id="risk-score">--</span>
-                    <span class="score-label">Report Date: {{ latest_report.date }}</span>
+                    <span class="muted">No report yet — run an evaluation.</span>
                     {% endif %}
                 </div>
-                <div class="risk-actions">
-                    <a href="/reports/{{ latest_report.html_path }}" target="_blank" class="btn btn-small">View Full Report</a>
-                </div>
-                {% else %}
-                <p>No evaluation report available. Click "Run Evaluation" to generate one.</p>
-                {% endif %}
             </div>
 
             <!-- Portfolio Holdings -->

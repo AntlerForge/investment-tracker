@@ -11,6 +11,12 @@ body {
     line-height: 1.6;
 }
 
+.muted {
+    color: #6c757d;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
 .status-bar {
     display: none;
     padding: 12px 20px;

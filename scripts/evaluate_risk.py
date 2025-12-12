@@ -470,11 +470,25 @@ def main():
             )
         
         # Compute risk score
+        # Also incorporate position-level drawdown and data completeness so the score is more informative.
+        worst_position_pnl_pct = None
+        try:
+            if positions:
+                worst_position_pnl_pct = min(p.get("change_pct", 0.0) for p in positions)
+        except Exception:
+            worst_position_pnl_pct = None
+
+        # Track missing market inputs that would suppress macro/sector signal evaluation
+        required_market_keys = ["VIX", "HYG", "QQQ", "US10Y", "NVDA", "SOX", "NVDA_prev", "QQQ_prev", "SOX_prev"]
+        missing_market_inputs = [k for k in required_market_keys if market_data.get(k) is None]
+
         risk_score = compute_risk_score(
             macro_signals,
             sector_signals,
             all_stock_signals,
-            portfolio_metrics["total_change_pct"]
+            portfolio_metrics["total_change_pct"],
+            worst_position_pnl_pct=worst_position_pnl_pct,
+            missing_market_inputs=missing_market_inputs
         )
         risk_level = get_risk_level(risk_score)
         
@@ -633,6 +647,8 @@ def main():
         risk_assessment_state = {
             "risk_score": risk_score,
             "risk_level": risk_level,
+            "worst_position_pnl_pct": worst_position_pnl_pct,
+            "missing_market_inputs": missing_market_inputs,
             "signals": {
                 "macro": macro_signals,
                 "sector": sector_signals,
