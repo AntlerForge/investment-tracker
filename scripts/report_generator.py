@@ -352,12 +352,32 @@ def save_history_entry(
         with open(csv_path, "w") as f:
             f.write("date,risk_score,portfolio_value_gbp,portfolio_change_pct\n")
     
-    # Append entry
-    with open(csv_path, "a") as f:
-        f.write(
-            f"{evaluation_date.strftime('%Y-%m-%d')},"
+    # Ensure one entry per date (overwrite older entries for same YYYY-MM-DD).
+    date_str = evaluation_date.strftime('%Y-%m-%d')
+    try:
+        existing_lines = []
+        if csv_path.exists():
+            with open(csv_path, "r") as f:
+                existing_lines = f.readlines()
+        header = existing_lines[0] if existing_lines else "date,risk_score,portfolio_value_gbp,portfolio_change_pct\n"
+        data_lines = existing_lines[1:] if len(existing_lines) > 1 else []
+        data_lines = [ln for ln in data_lines if not ln.startswith(f"{date_str},")]
+        data_lines.append(
+            f"{date_str},"
             f"{risk_score},"
             f"{portfolio_value:.2f},"
             f"{portfolio_change_pct:.2f}\n"
         )
+        with open(csv_path, "w") as f:
+            f.write(header)
+            f.writelines(data_lines)
+    except Exception:
+        # Fallback: append if rewrite fails for any reason
+        with open(csv_path, "a") as f:
+            f.write(
+                f"{date_str},"
+                f"{risk_score},"
+                f"{portfolio_value:.2f},"
+                f"{portfolio_change_pct:.2f}\n"
+            )
 

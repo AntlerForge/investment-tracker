@@ -118,20 +118,23 @@ def load_risk_history() -> list:
     if not csv_path.exists():
         return []
     
-    history = []
+    # Deduplicate by date: keep the most recent entry for each YYYY-MM-DD.
+    # (Multiple evaluations on the same date otherwise create repeated x-axis labels in charts.)
+    by_date = {}
     with open(csv_path, 'r') as f:
         lines = f.readlines()
         if len(lines) > 1:  # Skip header
             for line in lines[1:]:
                 parts = line.strip().split(',')
                 if len(parts) >= 4:
-                    history.append({
+                    by_date[parts[0]] = {
                         "date": parts[0],
                         "risk_score": int(parts[1]),
                         "portfolio_value": float(parts[2]),
                         "portfolio_change_pct": float(parts[3])
-                    })
+                    }
     
+    history = list(by_date.values())
     return sorted(history, key=lambda x: x["date"], reverse=True)
 
 
