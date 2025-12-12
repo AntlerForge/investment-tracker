@@ -351,7 +351,9 @@
                 const scores = chronological.map(d => d.risk_score);
 
                 const last = chronological[chronological.length - 1];
-                if (metaEl) metaEl.textContent = `Evaluations through: ${last.date} (${chronological.length} pts)`;
+                const minScore = Math.min(...scores);
+                const maxScore = Math.max(...scores);
+                if (metaEl) metaEl.textContent = `Evaluations through: ${last.date} (${chronological.length} pts) • Latest score: ${last.risk_score} • Range: ${minScore}–${maxScore}`;
 
                 const ctx = canvas.getContext('2d');
             new Chart(ctx, {
@@ -364,7 +366,9 @@
                         borderColor: 'rgb(75, 192, 192)',
                             backgroundColor: 'rgba(75, 192, 192, 0.12)',
                             tension: 0.1,
-                            fill: true
+                            fill: true,
+                            pointRadius: 3,
+                            pointHoverRadius: 6
                     }]
                 },
                 options: {
@@ -373,7 +377,8 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                            max: 100
+                                // Auto-scale so low-but-nonzero values don't look like a flat zero line
+                                suggestedMax: Math.max(10, maxScore + 5)
                         }
                     }
                 }
