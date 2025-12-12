@@ -206,14 +206,8 @@
             <div class="card risk-history">
                 <h2>Risk Score History</h2>
                 <div class="history-container">
-                    {% if history %}
                     <canvas id="history-chart"></canvas>
-                    <div class="history-meta">
-                        History through: <strong>{{ history[0].date }}</strong> ({{ history|length }} pts)
-                    </div>
-                    {% else %}
-                    <p>No history data available yet.</p>
-                    {% endif %}
+                    <div class="history-meta" id="risk-history-meta">Loading risk history...</div>
                 </div>
             </div>
 
@@ -336,24 +330,46 @@
         const currentBaselineDate = {{ (portfolio.get('current_baseline_date') or portfolio.get('original_baseline_date') or portfolio.get('baseline_date') or '')|tojson }};
         const historyData = {{ history|tojson if history else '[]' }};
         
-        {% if history %}
-        // Initialize risk score history chart
-        if (historyData.length > 0) {
-            const ctx = document.getElementById('history-chart').getContext('2d');
+        // Initialize risk score history chart from evaluation history (one point per date)
+        (async function initRiskHistoryChart() {
+            const metaEl = document.getElementById('risk-history-meta');
+            const canvas = document.getElementById('history-chart');
+            if (!canvas) return;
+
+            try {
+                const resp = await fetch(`/api/risk-history?_t=${Date.now()}`);
+                const data = await resp.json();
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    if (metaEl) metaEl.textContent = 'No evaluation history yet.';
+                    return;
+                }
+
+                // Oldest -> newest for plotting
+                const chronological = [...data].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+                const labels = chronological.map(d => d.date);
+                const scores = chronological.map(d => d.risk_score);
+
+                const last = chronological[chronological.length - 1];
+                if (metaEl) metaEl.textContent = `Evaluations through: ${last.date} (${chronological.length} pts)`;
+
+                const ctx = canvas.getContext('2d');
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: historyData.map(h => h.date).reverse(),
+                        labels,
                     datasets: [{
-                        label: 'Risk Score',
-                        data: historyData.map(h => h.risk_score).reverse(),
+                            label: 'Risk-off Score',
+                            data: scores,
                         borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1
+                            backgroundColor: 'rgba(75, 192, 192, 0.12)',
+                            tension: 0.1,
+                            fill: true
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                        maintainAspectRatio: false,
                     scales: {
                         y: {
                             beginAtZero: true,
@@ -362,7 +378,10 @@
                     }
                 }
             });
-        }
+            } catch (e) {
+                if (metaEl) metaEl.textContent = 'Error loading evaluation history.';
+            }
+        })();
         
         // Initialize portfolio value charts
         if (historyData.length > 0 && currentBaselineTotal > 0) {

@@ -138,6 +138,92 @@ def load_risk_history() -> list:
     return sorted(history, key=lambda x: x["date"], reverse=True)
 
 
+def load_risk_evaluation_history() -> list:
+    """
+    Load risk score history from evaluation state files (data/history/state_*.json).
+
+    This avoids plotting daily filler rows (which can have risk_score=0) and instead
+    reflects the score produced at evaluation time.
+    """
+    history_dir = HISTORY_DIR
+    state_files = sorted(history_dir.glob("state_*.json"))
+    if not state_files:
+        return []
+
+    # Keep the latest evaluation per date
+    by_date: Dict[str, Dict[str, Any]] = {}
+
+    for path in state_files:
+        try:
+            import json
+            with open(path, "r") as f:
+                state = json.load(f)
+
+            last_updated = state.get("last_updated") or ""
+            if not last_updated:
+                continue
+
+            dt = datetime.fromisoformat(str(last_updated).replace("Z", "+00:00"))
+            date_str = dt.strftime("%Y-%m-%d")
+
+            portfolio = state.get("portfolio", {}) or {}
+            totals = portfolio.get("totals", {}) or {}
+            holdings = portfolio.get("holdings", []) or []
+
+            portfolio_value = float(totals.get("total_value_gbp", 0.0) or 0.0)
+            portfolio_pnl_pct = float(totals.get("total_pnl_pct", 0.0) or 0.0)
+
+            # Worst holding drawdown (if available)
+            worst_position_pnl_pct = None
+            try:
+                if holdings:
+                    worst_position_pnl_pct = min(float(h.get("change_pct", 0.0) or 0.0) for h in holdings)
+            except Exception:
+                worst_position_pnl_pct = None
+
+            risk_assessment = state.get("risk_assessment", {}) or {}
+            signals = risk_assessment.get("signals", {}) or {}
+            macro_signals = signals.get("macro", {}) or {}
+            sector_signals = signals.get("sector", {}) or {}
+            stock_signals = signals.get("stock", {}) or {}
+            missing_market_inputs = risk_assessment.get("missing_market_inputs", []) or []
+
+            # Recompute using latest scoring logic (covers older state files created before scoring upgrades)
+            try:
+                from scripts.signals_engine import compute_risk_score, get_risk_level
+
+                risk_score = compute_risk_score(
+                    macro_signals,
+                    sector_signals,
+                    stock_signals,
+                    portfolio_pnl_pct,
+                    worst_position_pnl_pct=worst_position_pnl_pct,
+                    missing_market_inputs=list(missing_market_inputs) if missing_market_inputs else None,
+                )
+                risk_level = get_risk_level(risk_score)
+            except Exception:
+                risk_score = int(risk_assessment.get("risk_score", 0) or 0)
+                risk_level = str(risk_assessment.get("risk_level", "Unknown") or "Unknown")
+
+            entry = {
+                "timestamp": dt.isoformat(),
+                "date": date_str,
+                "risk_score": int(risk_score),
+                "risk_level": risk_level,
+                "portfolio_value": portfolio_value,
+                "portfolio_change_pct": portfolio_pnl_pct,
+            }
+
+            if (date_str not in by_date) or (dt > datetime.fromisoformat(by_date[date_str]["timestamp"].replace("Z", "+00:00"))):
+                by_date[date_str] = entry
+
+        except Exception:
+            continue
+
+    out = list(by_date.values())
+    return sorted(out, key=lambda x: x["date"], reverse=True)
+
+
 def calculate_portfolio_pnl(portfolio_config: Dict[str, Any]) -> Dict[str, Any]:
     """Calculate current portfolio values and P&L."""
     try:
@@ -537,6 +623,12 @@ def get_history():
     """Get risk score history."""
     history = load_risk_history()
     return jsonify(history)
+
+
+@app.route('/api/risk-history')
+def get_risk_history():
+    """Get evaluation-based risk score history (one point per evaluation date)."""
+    return jsonify(load_risk_evaluation_history())
 
 
 @app.route('/api/buy-recommendations')
