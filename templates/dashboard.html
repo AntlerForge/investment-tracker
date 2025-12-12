@@ -199,6 +199,9 @@
                 <div class="history-container">
                     {% if history %}
                     <canvas id="history-chart"></canvas>
+                    <div class="history-meta">
+                        History through: <strong>{{ history[0].date }}</strong> ({{ history|length }} pts)
+                    </div>
                     {% else %}
                     <p>No history data available yet.</p>
                     {% endif %}
@@ -341,6 +344,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
                         y: {
                             beginAtZero: true,
@@ -400,7 +404,7 @@
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: true,
+                        maintainAspectRatio: false,
                         plugins: {
                             legend: {
                                 display: true,
@@ -477,7 +481,7 @@
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: true,
+                        maintainAspectRatio: false,
                         plugins: {
                             legend: {
                                 display: true,
