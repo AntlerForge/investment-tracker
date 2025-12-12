@@ -453,6 +453,33 @@ tbody tr:hover {
     color: #6c757d;
 }
 
+.history-table {
+    margin-top: 10px;
+    display: grid;
+    gap: 4px;
+    font-size: 12px;
+    color: #2c3e50;
+}
+
+.history-row {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(248, 249, 250, 0.9);
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+
+.history-date {
+    font-variant-numeric: tabular-nums;
+    color: #495057;
+}
+
+.history-score {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
 .toast {
     position: fixed;
     bottom: 20px;

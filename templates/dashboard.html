@@ -208,6 +208,7 @@
                 <div class="history-container">
                     <canvas id="history-chart"></canvas>
                     <div class="history-meta" id="risk-history-meta">Loading risk history...</div>
+                    <div class="history-table" id="risk-history-table"></div>
                 </div>
             </div>
 
@@ -333,6 +334,7 @@
         // Initialize risk score history chart from evaluation history (one point per date)
         (async function initRiskHistoryChart() {
             const metaEl = document.getElementById('risk-history-meta');
+            const tableEl = document.getElementById('risk-history-table');
             const canvas = document.getElementById('history-chart');
             if (!canvas) return;
 
@@ -355,7 +357,14 @@
                 const maxScore = Math.max(...scores);
                 if (metaEl) metaEl.textContent = `Evaluations through: ${last.date} (${chronological.length} pts) • Latest score: ${last.risk_score} • Range: ${minScore}–${maxScore}`;
 
+                // Also render a simple table (last 10) so low-but-nonzero scores are obvious at a glance.
+                if (tableEl) {
+                    const lastN = chronological.slice(-10).reverse();
+                    tableEl.innerHTML = lastN.map(r => `<div class="history-row"><span class="history-date">${r.date}</span><span class="history-score">${r.risk_score}</span></div>`).join('');
+                }
+
                 const ctx = canvas.getContext('2d');
+                const yMax = maxScore <= 10 ? 10 : 100;
             new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -377,8 +386,10 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                                // Auto-scale so low-but-nonzero values don't look like a flat zero line
-                                suggestedMax: Math.max(10, maxScore + 5)
+                                max: yMax,
+                                ticks: {
+                                    stepSize: yMax <= 10 ? 1 : undefined
+                                }
                         }
                     }
                 }
