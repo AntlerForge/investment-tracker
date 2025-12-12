@@ -320,6 +320,8 @@
         // Portfolio baseline values
         const currentBaselineTotal = {{ portfolio_pnl.totals.total_baseline_value|default(0) }};
         const originalBaselineTotal = {{ portfolio_pnl.totals.original_baseline_total|default(0) }};
+        const originalBaselineDate = {{ (portfolio.get('original_baseline_date') or portfolio.get('baseline_date') or '')|tojson }};
+        const currentBaselineDate = {{ (portfolio.get('current_baseline_date') or portfolio.get('original_baseline_date') or portfolio.get('baseline_date') or '')|tojson }};
         const historyData = {{ history|tojson if history else '[]' }};
         
         {% if history %}
