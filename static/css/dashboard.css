@@ -271,6 +271,36 @@ table {
     border-collapse: collapse;
 }
 
+/* Holdings table sparkline column */
+#holdings-table {
+    table-layout: fixed;
+}
+
+#holdings-table th:nth-child(1),
+#holdings-table td:nth-child(1) {
+    width: 80px; /* ticker */
+}
+
+#holdings-table th:nth-child(2),
+#holdings-table td:nth-child(2) {
+    width: 140px; /* sparkline */
+}
+
+.sparkline-cell {
+    padding: 6px 8px;
+}
+
+.sparkline {
+    width: 120px;
+    height: 28px;
+    display: block;
+}
+
+.sparkline polyline {
+    fill: none;
+    stroke-width: 2;
+}
+
 thead {
     background: #34495e;
     color: white;

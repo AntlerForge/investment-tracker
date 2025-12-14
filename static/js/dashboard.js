@@ -492,6 +492,65 @@ if (document.readyState === 'loading') {
     loadBuyRecommendations();
 }
 
+// ==========================
+// Holdings table sparklines
+// ==========================
+
+function renderSparkline(svg, values) {
+    if (!svg) return;
+    svg.innerHTML = '';
+    if (!Array.isArray(values) || values.length < 2) {
+        return;
+    }
+
+    const w = 100;
+    const h = 28;
+    const padding = 2;
+    const minV = Math.min(...values);
+    const maxV = Math.max(...values);
+    const span = (maxV - minV) || 1;
+
+    const points = values.map((v, i) => {
+        const x = padding + (i * (w - padding * 2)) / (values.length - 1);
+        const y = padding + (h - padding * 2) * (1 - (v - minV) / span);
+        return `${x.toFixed(2)},${y.toFixed(2)}`;
+    }).join(' ');
+
+    const up = values[values.length - 1] >= values[0];
+    const stroke = up ? '#2e7d32' : '#c62828';
+
+    const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    pl.setAttribute('points', points);
+    pl.setAttribute('stroke', stroke);
+    pl.setAttribute('vector-effect', 'non-scaling-stroke');
+
+    svg.appendChild(pl);
+}
+
+async function loadHoldingSparklines() {
+    const svgs = document.querySelectorAll('svg.sparkline[data-ticker]');
+    if (!svgs.length) return;
+
+    try {
+        const resp = await fetch(`${API_BASE}/holding-trends?_t=${Date.now()}`);
+        const data = await resp.json();
+        svgs.forEach(svg => {
+            const ticker = svg.dataset.ticker;
+            const series = (data && data[ticker]) ? data[ticker] : [];
+            const values = Array.isArray(series) ? series.map(p => Number(p.close)).filter(v => Number.isFinite(v)) : [];
+            renderSparkline(svg, values);
+        });
+    } catch (e) {
+        console.warn('Failed to load holding sparklines', e);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadHoldingSparklines);
+} else {
+    loadHoldingSparklines();
+}
+
 // Make table cells editable on double-click
 document.querySelectorAll('.editable').forEach(cell => {
     cell.addEventListener('dblclick', async () => {

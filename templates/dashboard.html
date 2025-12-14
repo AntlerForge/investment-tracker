@@ -64,6 +64,7 @@
                         <thead>
                             <tr>
                                 <th>Ticker</th>
+                                <th>Trend (7d)</th>
                                 <th>Symbol</th>
                                 <th>Shares</th>
                                 <th>Baseline Value (£)</th>
@@ -88,6 +89,9 @@
                                 data-analysis-summary="{{ pos.get('analysis_summary', '')|e }}"
                             >
                                 <td><strong>{{ ticker }}</strong></td>
+                                <td class="sparkline-cell">
+                                    <svg class="sparkline" data-ticker="{{ ticker }}" viewBox="0 0 100 28" preserveAspectRatio="none"></svg>
+                                </td>
                                 <td>{{ holding.symbol }}</td>
                                 <td class="editable" data-field="shares">{{ holding.shares }}</td>
                                 <td class="editable" data-field="baseline_value_gbp">£{{ "%.2f"|format(holding.baseline_value_gbp) }}</td>

@@ -128,6 +128,56 @@ def fetch_stock_price(symbol: str, date: Optional[datetime] = None, force_refres
     return price
 
 
+def fetch_recent_close_series(symbol: str, days: int = 7, force_refresh: bool = False) -> List[Dict[str, Any]]:
+    """
+    Fetch a recent daily close series (typically last ~week of trading days) for a symbol.
+
+    Returns a list of points: [{"date": "YYYY-MM-DD", "close": float}, ...] in chronological order.
+    """
+    if days <= 0:
+        return []
+
+    cache_key = _get_cache_key("series", symbol, f"{days}d")
+    if not force_refresh:
+        cached = _get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+    if not YFINANCE_AVAILABLE:
+        return []
+
+    try:
+        ticker = yf.Ticker(symbol)
+        # Pull a bit more than requested to account for weekends/holidays
+        hist = ticker.history(period=f"{max(days + 7, 10)}d", interval="1d")
+        if hist is None or hist.empty:
+            return []
+
+        closes = hist["Close"].dropna()
+        if closes.empty:
+            return []
+
+        closes = closes.tail(days)
+
+        points: List[Dict[str, Any]] = []
+        for idx, close in closes.items():
+            dt = idx.to_pydatetime() if hasattr(idx, "to_pydatetime") else idx
+            date_str = dt.date().isoformat() if hasattr(dt, "date") else str(idx)[:10]
+            val = float(close)
+            # LSE symbols quoted in pence in yfinance -> convert to pounds
+            if symbol.endswith(".L"):
+                val = val / 100.0
+            points.append({"date": date_str, "close": val})
+
+        # Ensure chronological order
+        points = sorted(points, key=lambda p: str(p.get("date", "")))
+        _set_cache(cache_key, points)
+        return points
+    except Exception as e:
+        logger.warning(f"Failed to fetch recent series for {symbol}: {e}")
+        return []
+
+
 def fetch_fx_rate(base_currency: str, target_currency: str, date: Optional[datetime] = None, force_refresh: bool = False) -> Optional[float]:
     """
     Fetch foreign exchange rate.

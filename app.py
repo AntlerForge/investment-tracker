@@ -631,6 +631,32 @@ def get_risk_history():
     return jsonify(load_risk_evaluation_history())
 
 
+@app.route('/api/holding-trends')
+def get_holding_trends():
+    """
+    Get recent per-holding price trend series for sparklines in the holdings table.
+
+    Returns:
+      {
+        "TICKER": [{"date":"YYYY-MM-DD","close":123.45}, ...],
+        ...
+      }
+    """
+    try:
+        portfolio_config = load_portfolio_config()
+        holdings = portfolio_config.get("holdings", {}) or {}
+        from scripts.fetch_market_data import fetch_recent_close_series
+
+        out: Dict[str, Any] = {}
+        for ticker, holding in holdings.items():
+            symbol = holding.get("symbol", ticker)
+            out[str(ticker)] = fetch_recent_close_series(str(symbol), days=7)
+        return jsonify(out)
+    except Exception as e:
+        logger.error(f"Error building holding trends: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/buy-recommendations')
 def get_buy_recommendations():
     """Get buy recommendations based on current portfolio."""
